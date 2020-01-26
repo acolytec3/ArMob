@@ -24,7 +24,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
   web3dart: ^1.2.2
-  webview_flutter: ^0.3.19 
+  webview_flutter: ^0.3.19
+  libarweave:
+    path: ../libarweave/
 
 dev_dependencies:
   flutter_test:
