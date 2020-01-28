@@ -57,6 +57,8 @@ Uint8List nameHash(String name) {
 }
 
 class EnsName extends StatefulWidget {
+  final String url;
+  const EnsName({Key key, this.url}) : super(key: key);
   @override
   EnsNameState createState() => EnsNameState();
 }
@@ -81,16 +83,17 @@ class EnsNameState extends State<EnsName> {
               url = resolve(nameHash(name));
             }),
         Expanded(
-          child: FutureBuilder(
-            future: url,
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.hasData) {
-                return WebView(
-                  initialUrl: 'https://arweave.net/' + snapshot.data.toString(),
-                );
-              } else
-                return Center(child: Text("Still loading"));
-            }))
+            child: FutureBuilder(
+                future: url,
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  if (snapshot.hasData) {
+                    return WebView(
+                      initialUrl:
+                          'https://arweave.net/' + snapshot.data.toString(),
+                    );
+                  } else
+                    return Center(child: Text("Still loading"));
+                }))
       ],
     );
   }

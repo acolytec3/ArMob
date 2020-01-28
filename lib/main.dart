@@ -12,6 +12,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  String _url;
+
+  launchBrowser(int index, String url) {
+    _currentIndex = index;
+    _url = url;
+    setState((){});
+  }
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -26,7 +33,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   index: _currentIndex,
                   children:
                       allDestinations.map<Widget>((Destination destination) {
-                    return DestinationView(destination: destination);
+                    return DestinationView(destination: destination, notifyParent: launchBrowser, url: _url);
                   }).toList(),
                 )),
             bottomNavigationBar: BottomNavigationBar(

@@ -1,5 +1,6 @@
 import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
+import 'package:arweave/wallet.dart';
 
 class Destination {
   const Destination(this.title, this.icon);
@@ -13,7 +14,9 @@ const List<Destination> allDestinations = <Destination>[
 ];
 
 class DestinationView extends StatefulWidget {
-  const DestinationView({Key key, this.destination}) : super(key: key);
+  final String url;
+  final Function(int index, String url) notifyParent;
+  const DestinationView({Key key, this.destination, @required this.notifyParent, this.url}) : super(key: key);
 
   final Destination destination;
 
@@ -28,7 +31,7 @@ class _DestinationViewState extends State<DestinationView> {
   void initState() {
     super.initState();
     _textController = TextEditingController(
-      text: 'sample text: ${widget.destination.title}',
+      text: '${widget.destination.title}',
     );
   }
 
@@ -36,17 +39,10 @@ class _DestinationViewState extends State<DestinationView> {
   Widget build(BuildContext context) {
     switch (widget.destination.title) {
       case "Browser":
-        return EnsName();
+        return EnsName(url: widget.url);
       case "Wallet":
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('${widget.destination.title} Text'),
-          ),
-          body: Container(
-            padding: const EdgeInsets.all(32.0),
-            alignment: Alignment.center,
-            child: TextField(controller: _textController),
-          ),
+        return Wallet(
+          notifyParent: widget.notifyParent,
         );
     }
   }

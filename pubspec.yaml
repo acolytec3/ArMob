@@ -27,6 +27,7 @@ dependencies:
   webview_flutter: ^0.3.19
   libarweave:
     path: ../libarweave/
+  file_picker: ^1.4.2
 
 dev_dependencies:
   flutter_test:
