@@ -17,8 +17,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   launchBrowser(int index, String url) {
     _currentIndex = index;
     _url = url;
-    setState((){});
+    setState(() {});
   }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,21 +34,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   index: _currentIndex,
                   children:
                       allDestinations.map<Widget>((Destination destination) {
-                    return DestinationView(destination: destination, notifyParent: launchBrowser, url: _url);
+                    return DestinationView(
+                        destination: destination,
+                        notifyParent: launchBrowser,
+                        url: _url);
                   }).toList(),
                 )),
             bottomNavigationBar: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (int index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              items: allDestinations.map((Destination destination) {
-                return BottomNavigationBarItem(
-                    icon: Icon(destination.icon),
-                    title: Text(destination.title));
-              }).toList(),
-            )));
+                currentIndex: _currentIndex,
+                onTap: (int index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    title: Text("Wallet"),
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.developer_mode),
+                    title: Text("Browser"),
+                  ),
+                ])));
   }
 }

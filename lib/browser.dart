@@ -65,7 +65,32 @@ class EnsName extends StatefulWidget {
 
 class EnsNameState extends State<EnsName> {
   String name;
-  Future<String> url;
+  String url;
+
+  void setUrl(resolvedName) async {
+    name = resolvedName;
+    final arTx = await resolve(nameHash(name));
+    setState(() {
+      url = 'https://arweave.net/' + arTx.toString();
+    });
+  }
+
+  Widget browserHomepage() {
+    if (url != null){
+      print("Navigating to ${url}");
+    }
+    else if (widget.url != null){
+      print("Navigating to ${widget.url}");
+    }
+    else print("Navigating nowhere");
+  
+    if (url != null) {
+      return WebView(initialUrl: url);
+    } else if (widget.url != null) {
+      return WebView(initialUrl: widget.url);
+    } else
+      return Center(child: Text('page loading'));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,23 +102,9 @@ class EnsNameState extends State<EnsName> {
               labelText: 'ENS Address',
             ),
             onSubmitted: (value) {
-              setState(() {
-                name = value;
-              });
-              url = resolve(nameHash(name));
+              setUrl(value);
             }),
-        Expanded(
-            child: FutureBuilder(
-                future: url,
-                builder: (BuildContext context, AsyncSnapshot snapshot) {
-                  if (snapshot.hasData) {
-                    return WebView(
-                      initialUrl:
-                          'https://arweave.net/' + snapshot.data.toString(),
-                    );
-                  } else
-                    return Center(child: Text("Still loading"));
-                }))
+        Expanded(child: browserHomepage()),
       ],
     );
   }
