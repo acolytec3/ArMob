@@ -1,6 +1,6 @@
 import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
-//import 'package:arweave/wallet.dart';
+
 
 void main() {
   runApp(HomePage());
@@ -23,10 +23,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Arwen Browser',
+        title: 'ArMob',
         home: Scaffold(
             appBar: AppBar(
-              title: Text("Arwen"),
+              title: Text("ArMob"),
             ),
             body: SafeArea(
                 top: false,

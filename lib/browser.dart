@@ -118,7 +118,7 @@ class WebViewContainerState extends State<WebViewContainer> {
       onWebViewCreated: (controller) {
         _webViewController = controller;
       },
-      initialUrl: "https://arweave.net",
+      initialUrl: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
     );
   }
 
@@ -167,8 +167,12 @@ class WalletState extends State<Wallet> {
   }
 
   Widget transactionItem(transaction) {
+    print(transaction['tags']);
+    final contentType = transaction['tags'].singleWhere((tag) => tag['name'] == 'Content-Type', orElse: () => "No content-type specified");
     return ListTile(
         title: Text(transaction['id']),
+        subtitle: Text("Content type: ${contentType['value']}"),
+        enabled: contentType != "No content-type specified",
         onTap: () {
           webViewKey.currentState
               ?.loadURL("https://arweave.net/${transaction['id']}'");
