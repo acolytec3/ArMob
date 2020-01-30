@@ -1,5 +1,6 @@
+import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
-import 'main_view.dart';
+//import 'package:arweave/wallet.dart';
 
 void main() {
   runApp(HomePage());
@@ -14,9 +15,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   String _url;
 
-  launchBrowser(int index, String url) {
+  launchBrowser(int index) {
     _currentIndex = index;
-    _url = url;
     setState(() {});
   }
 
@@ -30,15 +30,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             body: SafeArea(
                 top: false,
-                child: IndexedStack(
-                  index: _currentIndex,
-                  children:
-                      allDestinations.map<Widget>((Destination destination) {
-                    return DestinationView(
-                        destination: destination,
-                        notifyParent: launchBrowser,
-                        url: _url);
-                  }).toList(),
+                child: Stack(
+                  children: [
+                    Offstage(
+                        offstage: _currentIndex != 0,
+                        child: Wallet(notifyParent: launchBrowser)),
+                    Offstage(
+                      offstage: _currentIndex != 1,
+                      child: EnsName(url: _url),
+                    )
+                  ],
                 )),
             bottomNavigationBar: BottomNavigationBar(
                 currentIndex: _currentIndex,

@@ -5,6 +5,11 @@ import 'package:web3dart/crypto.dart';
 import 'dart:typed_data';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:async';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:libarweave/libarweave.dart' as Ar;
+
+final webViewKey = GlobalKey<WebViewContainerState>();
 
 const rpcURL = "https://ropsten.infura.io/v3/c4809a978c5b48c8a5b8fdc9133cef42";
 var httpClient = new Client();
@@ -69,27 +74,14 @@ class EnsNameState extends State<EnsName> {
 
   void setUrl(resolvedName) async {
     name = resolvedName;
-    final arTx = await resolve(nameHash(name));
-    setState(() {
+    try{
+      final arTx = await resolve(nameHash(name));
       url = 'https://arweave.net/' + arTx.toString();
-    });
-  }
-
-  Widget browserHomepage() {
-    if (url != null){
-      print("Navigating to ${url}");
+      webViewKey.currentState?.loadURL(url);
     }
-    else if (widget.url != null){
-      print("Navigating to ${widget.url}");
+   catch(__) {
+      print("Name could not be resolved");
     }
-    else print("Navigating nowhere");
-  
-    if (url != null) {
-      return WebView(initialUrl: url);
-    } else if (widget.url != null) {
-      return WebView(initialUrl: widget.url);
-    } else
-      return Center(child: Text('page loading'));
   }
 
   @override
@@ -99,32 +91,127 @@ class EnsNameState extends State<EnsName> {
         TextField(
             decoration: InputDecoration(
               border: OutlineInputBorder(),
-              labelText: 'ENS Address',
+              labelText: 'Address',
             ),
             onSubmitted: (value) {
               setUrl(value);
             }),
-        Expanded(child: browserHomepage()),
+        Expanded(child: WebViewContainer(key: webViewKey)),
       ],
     );
   }
 }
 
-class Arweave extends StatefulWidget {
+class WebViewContainer extends StatefulWidget {
+  WebViewContainer({Key key}) : super(key: key);
+
   @override
-  ArweaveState createState() => ArweaveState();
+  WebViewContainerState createState() => WebViewContainerState();
 }
 
-class ArweaveState extends State<Arweave> {
+class WebViewContainerState extends State<WebViewContainer> {
+  WebViewController _webViewController;
+
   @override
   Widget build(BuildContext context) {
-    return new FutureBuilder(
-        future: resolve(nameHash("acolytec3.eth")),
-        builder: (BuildContext context, AsyncSnapshot snapshot) {
-          if (snapshot.hasData) {
-            return Center(child: Text(snapshot.data.toString()));
-          } else
-            return Center(child: Text("Still loading"));
+    return WebView(
+      onWebViewCreated: (controller) {
+        _webViewController = controller;
+      },
+      initialUrl: "https://arweave.net",
+    );
+  }
+
+  void reloadWebView() {
+    _webViewController?.reload();
+  }
+
+  void loadURL(String url) {
+    _webViewController?.loadUrl(url);
+  }
+}
+
+class Wallet extends StatefulWidget {
+  final Function(int index) notifyParent;
+
+  const Wallet({Key key, @required this.notifyParent}) : super(key: key);
+
+  @override
+  WalletState createState() => WalletState();
+}
+
+class WalletState extends State<Wallet> {
+  File _fileName;
+  var _myWallet;
+  var _balance;
+  List _txHistory;
+
+  void _openWallet() async {
+    _fileName = await FilePicker.getFile();
+    final walletString = _fileName.readAsStringSync();
+    try{
+    _myWallet = Ar.Wallet(walletString);
+    }
+    catch(__){
+      print("Invalid Wallet File");
+    }
+
+    _balance = await _myWallet.balance();
+    setState(() {});
+  }
+
+  void _loadTxHistory() async {
+    final txHistory = await _myWallet.transactionHistory();
+    _txHistory = txHistory;
+    setState(() {});
+  }
+
+  Widget transactionItem(transaction) {
+    return ListTile(
+        title: Text(transaction['id']),
+        onTap: () {
+          webViewKey.currentState
+              ?.loadURL("https://arweave.net/${transaction['id']}'");
+          widget.notifyParent(1);
         });
+  }
+
+  List<Widget> buildTxHistory() {
+    var txnList = <Widget>[];
+    for (var txn in _txHistory) {
+      txnList.add(transactionItem(txn));
+    }
+    return txnList;
+  }
+
+  List<Widget> buildWallet() {
+    List<Widget> widgetList = [];
+    if (_fileName == null) {
+      widgetList.add(Center(
+          child: RaisedButton(
+        onPressed: () => _openWallet(),
+        child: Text("Load Wallet"),
+      )));
+    }
+    if (_myWallet != null) {
+      widgetList.add(Center(child: Text("Address: ${_myWallet.address}")));
+      widgetList.add(Center(child: Text("Account Balance: $_balance")));
+    }
+    if (_txHistory == null) {
+      widgetList.add(Center(
+          child: RaisedButton(
+        onPressed: () => _loadTxHistory(),
+        child: Text("Load Transaction History"),
+      )));
+    } else {
+      widgetList.add(Expanded(child: ListView(children: buildTxHistory())));
+    }
+
+    return widgetList;
+  }
+
+  @override
+  Widget build(context) {
+    return Column(children: buildWallet());
   }
 }
