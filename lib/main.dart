@@ -1,6 +1,6 @@
 import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
-
+import 'dart:io';
 
 void main() {
   runApp(HomePage());
@@ -14,9 +14,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   String _url;
+  File wallet;
 
-  launchBrowser(int index) {
+  launchBrowser(int index, File wallet) {
     _currentIndex = index;
+    wallet = wallet;
+
     setState(() {});
   }
 

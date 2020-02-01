@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:web3dart/web3dart.dart';
 import 'package:http/http.dart';
@@ -14,6 +16,7 @@ final webViewKey = GlobalKey<WebViewContainerState>();
 const rpcURL = "https://ropsten.infura.io/v3/c4809a978c5b48c8a5b8fdc9133cef42";
 var httpClient = new Client();
 var web3 = new Web3Client(rpcURL, httpClient);
+File _fileName;
 
 Future<String> resolve(namehash) async {
   final registryAbi =
@@ -74,12 +77,11 @@ class EnsNameState extends State<EnsName> {
 
   void setUrl(resolvedName) async {
     name = resolvedName;
-    try{
+    try {
       final arTx = await resolve(nameHash(name));
       url = 'https://arweave.net/' + arTx.toString();
       webViewKey.currentState?.loadURL(url);
-    }
-   catch(__) {
+    } catch (__) {
       print("Name could not be resolved");
     }
   }
@@ -119,20 +121,26 @@ class WebViewContainerState extends State<WebViewContainer> {
         _webViewController = controller;
       },
       initialUrl: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
+      javascriptMode: JavascriptMode.unrestricted,
+      onPageFinished: (url) {
+            final message = _fileName.readAsStringSync();
+            final mes = jsonEncode(message).toString();
+        _webViewController.evaluateJavascript('loginfile = document.querySelector("input[type=\'file\']");  loginfile.onclick = function(evt){evt.preventDefault();var walletString = $mes; console.log(walletString); login([new File([walletString.toString()],"wallet.json")])};');
+      },
     );
-  }
-
-  void reloadWebView() {
-    _webViewController?.reload();
   }
 
   void loadURL(String url) {
     _webViewController?.loadUrl(url);
   }
+
+  void setFileListener(String code) {
+    _webViewController?.evaluateJavascript(code);
+  }
 }
 
 class Wallet extends StatefulWidget {
-  final Function(int index) notifyParent;
+  final Function(int index, File wallet) notifyParent;
 
   const Wallet({Key key, @required this.notifyParent}) : super(key: key);
 
@@ -141,18 +149,23 @@ class Wallet extends StatefulWidget {
 }
 
 class WalletState extends State<Wallet> {
-  File _fileName;
+
   var _myWallet;
   var _balance;
   List _txHistory;
 
+  @override
+  void initState() {
+    super.initState();
+    Ar.setPeer();
+  }
+
   void _openWallet() async {
     _fileName = await FilePicker.getFile();
     final walletString = _fileName.readAsStringSync();
-    try{
-    _myWallet = Ar.Wallet(walletString);
-    }
-    catch(__){
+    try {
+      _myWallet = Ar.Wallet(walletString);
+    } catch (__) {
       print("Invalid Wallet File");
     }
 
@@ -168,7 +181,9 @@ class WalletState extends State<Wallet> {
 
   Widget transactionItem(transaction) {
     print(transaction['tags']);
-    final contentType = transaction['tags'].singleWhere((tag) => tag['name'] == 'Content-Type', orElse: () => "No content-type specified");
+    final contentType = transaction['tags'].singleWhere(
+        (tag) => tag['name'] == 'Content-Type',
+        orElse: () => "No content-type specified");
     return ListTile(
         title: Text(transaction['id']),
         subtitle: Text("Content type: ${contentType['value']}"),
@@ -176,7 +191,7 @@ class WalletState extends State<Wallet> {
         onTap: () {
           webViewKey.currentState
               ?.loadURL("https://arweave.net/${transaction['id']}'");
-          widget.notifyParent(1);
+          widget.notifyParent(1, _fileName);
         });
   }
 
