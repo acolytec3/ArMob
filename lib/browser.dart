@@ -17,6 +17,7 @@ const rpcURL = "https://ropsten.infura.io/v3/c4809a978c5b48c8a5b8fdc9133cef42";
 var httpClient = new Client();
 var web3 = new Web3Client(rpcURL, httpClient);
 File _fileName;
+var loginFunction;
 
 Future<String> resolve(namehash) async {
   final registryAbi =
@@ -99,6 +100,23 @@ class EnsNameState extends State<EnsName> {
               setUrl(value);
             }),
         Expanded(child: WebViewContainer(key: webViewKey)),
+        ButtonBar(
+          children: <Widget>[
+            IconButton(
+                icon: Icon(Icons.lock_open),
+                tooltip: "Unlock Wallet",
+                onPressed: () =>
+                    webViewKey.currentState?.callLoginFunction(loginFunction)),
+            IconButton(
+                icon: Icon(Icons.replay),
+                tooltip: "Reload",
+                onPressed: () => webViewKey.currentState?.reload()),
+            IconButton(
+                icon: Icon(Icons.arrow_back),
+                tooltip: "Back",
+                onPressed: () => webViewKey.currentState?.goBack()),
+          ],
+        )
       ],
     );
   }
@@ -120,12 +138,27 @@ class WebViewContainerState extends State<WebViewContainer> {
       onWebViewCreated: (controller) {
         _webViewController = controller;
       },
-      initialUrl: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
+      initialUrl:
+          "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
       javascriptMode: JavascriptMode.unrestricted,
+      javascriptChannels: <JavascriptChannel>[
+        JavascriptChannel(
+            name: '_print',
+            onMessageReceived: (JavascriptMessage msg) {
+              loginFunction = msg.message;
+            }),
+      ].toSet(),
       onPageFinished: (url) {
-            final message = _fileName.readAsStringSync();
-            final mes = jsonEncode(message).toString();
-        _webViewController.evaluateJavascript('loginfile = document.querySelector("input[type=\'file\']");  loginfile.onclick = function(evt){evt.preventDefault();var walletString = $mes; console.log(walletString); login([new File([walletString.toString()],"wallet.json")])};');
+        final message = _fileName.readAsStringSync();
+        final mes = jsonEncode(message).toString();
+        final findLoginFunction = '''
+          var walletString = $mes;
+          queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
+          re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
+          loginFunctionName = (queries[0].text.match(re))[0];
+          window._print.postMessage(loginFunctionName);''';
+        // window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])''';
+        _webViewController.evaluateJavascript(findLoginFunction);
       },
     );
   }
@@ -134,8 +167,17 @@ class WebViewContainerState extends State<WebViewContainer> {
     _webViewController?.loadUrl(url);
   }
 
-  void setFileListener(String code) {
-    _webViewController?.evaluateJavascript(code);
+  void callLoginFunction(String code) {
+    _webViewController?.evaluateJavascript(
+        'window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])');
+  }
+
+  void goBack() {
+    _webViewController?.goBack();
+  }
+
+  void reload() {
+    _webViewController?.reload();
   }
 }
 
@@ -149,7 +191,6 @@ class Wallet extends StatefulWidget {
 }
 
 class WalletState extends State<Wallet> {
-
   var _myWallet;
   var _balance;
   List _txHistory;
