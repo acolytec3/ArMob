@@ -103,11 +103,6 @@ class EnsNameState extends State<EnsName> {
         ButtonBar(
           children: <Widget>[
             IconButton(
-                icon: Icon(Icons.lock_open),
-                tooltip: "Unlock Wallet",
-                onPressed: () =>
-                    webViewKey.currentState?.callLoginFunction(loginFunction)),
-            IconButton(
                 icon: Icon(Icons.replay),
                 tooltip: "Reload",
                 onPressed: () => webViewKey.currentState?.reload()),
@@ -115,6 +110,11 @@ class EnsNameState extends State<EnsName> {
                 icon: Icon(Icons.arrow_back),
                 tooltip: "Back",
                 onPressed: () => webViewKey.currentState?.goBack()),
+            IconButton(
+                icon: Icon(Icons.lock_open),
+                tooltip: "Unlock Wallet",
+                onPressed: () =>
+                    webViewKey.currentState?.callLoginFunction(loginFunction)),
           ],
         )
       ],
