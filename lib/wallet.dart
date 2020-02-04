@@ -85,7 +85,7 @@ class WalletState extends State<Wallet> {
       widgetList.add(Center(child: Text("Address: ${_myWallet.address}")));
       widgetList.add(Center(child: Text("Account Balance: $_balance")));
     }
-    if (_txHistory == null) {
+    if ((_myWallet!= null) && (_txHistory == null)) {
       widgetList.add(Center(
           child: RaisedButton(
         onPressed: () => _loadTxHistory(),
