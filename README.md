@@ -30,3 +30,10 @@ Note - this currently works with Ropsten testnet ENS registrar
 * Navigate to [ENS](https://app.ens.domains)
 * Register a domain name on Ropsten network
 * Add text record with URL key and value corresponding to an Arweave transaction ID
+
+## Roadmap
+
+* Expand wallet injection feature to support more login patterns
+* Add secure storage for loaded wallets between app logins
+* Support biometric/password login
+* Enhance `transaction history` with better visibility on content of each data transaction
