@@ -1,9 +1,16 @@
 import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
+import 'package:arweave/wallet.dart';
+import 'package:arweave/appState.dart';
 import 'dart:io';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(HomePage());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => walletData(),
+      child: HomePage(),
+    ));
 }
 
 class HomePage extends StatefulWidget {
