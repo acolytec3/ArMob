@@ -1,16 +1,32 @@
-# arweave
+# ArMob
 
-A new Flutter project.
+A mobile browser for the permaweb
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+## Wallet Functionality
 
-A few resources to get you started if this is your first Flutter project:
+* Drop a wallet in the `load wallet` file picker to see wallet address and balance
+* Tap `load transactions` to see all data transactions
+* Tap on any transaction to open the resource in the browser window
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+## Browser functionality
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Arweave app Auto-login
+
+* Tap on any app from [ArweaveApps](https://arweaveapps.com)
+* Click on the unlock button on the browser nav buttons to attempt to unlock wallet
+Note - wallet injection only works on some Arweave apps at present (e.g. ArweaveID, Weavemail,etc)
+
+### Decentralized ENS navigation
+
+* Type weavemail.acolytec3.eth in address bar
+* Navigate to Weavemail using [ENS](https://app.ens.domains)
+
+#### Decentralized ENS name registration
+
+Note - this currently works with Ropsten testnet ENS registrar
+
+* Navigate to [ENS](https://app.ens.domains)
+* Register a domain name on Ropsten network
+* Add text record with URL key and value corresponding to an Arweave transaction ID

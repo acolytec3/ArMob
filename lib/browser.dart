@@ -9,6 +9,17 @@ final webViewKey = GlobalKey<WebViewContainerState>();
 
 var loginFunction;
 
+Future<bool> _exitApp(BuildContext context) async {
+  if (await webViewKey.currentState?.canGoBack()) {
+    webViewKey.currentState?.goBack();
+  } else {
+    Scaffold.of(context)
+        .showSnackBar(const SnackBar(content: Text("No page to go back to")));
+          return Future.value(false);
+  }
+
+}
+
 class EnsName extends StatefulWidget {
   const EnsName({Key key}) : super(key: key);
   @override
@@ -48,39 +59,41 @@ class EnsNameState extends State<EnsName> {
   Widget build(BuildContext context) {
     final _walletString =
         Provider.of<WalletData>(context, listen: false).walletString;
-    return Column(
-      children: <Widget>[
-        TextField(
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Address',
-            ),
-            onSubmitted: (value) {
-              setUrl(value);
-            }),
-        Expanded(child: WebViewContainer(key: webViewKey)),
-        ButtonBar(
-          alignment: MainAxisAlignment.spaceAround,
+    return WillPopScope(
+        onWillPop: () => _exitApp(context),
+        child: Column(
           children: <Widget>[
-            IconButton(
-                icon: Icon(Icons.arrow_back),
-                tooltip: "Back",
-                onPressed: () => webViewKey.currentState?.goBack()),
-            IconButton(
-                icon: Icon(Icons.replay),
-                tooltip: "Reload",
-                onPressed: () => webViewKey.currentState?.reload()),
-            IconButton(
-                icon: Icon(Icons.lock_open),
-                tooltip: "Unlock Wallet",
-                onPressed: (_walletString != null)
-                    ? () => webViewKey.currentState
-                        ?.callLoginFunction(loginFunction)
-                    : null),
+            TextField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Address',
+                ),
+                onSubmitted: (value) {
+                  setUrl(value);
+                }),
+            Expanded(child: WebViewContainer(key: webViewKey)),
+            ButtonBar(
+              alignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                IconButton(
+                    icon: Icon(Icons.arrow_back),
+                    tooltip: "Back",
+                    onPressed: () => webViewKey.currentState?.goBack()),
+                IconButton(
+                    icon: Icon(Icons.replay),
+                    tooltip: "Reload",
+                    onPressed: () => webViewKey.currentState?.reload()),
+                IconButton(
+                    icon: Icon(Icons.lock_open),
+                    tooltip: "Unlock Wallet",
+                    onPressed: (_walletString != null)
+                        ? () => webViewKey.currentState
+                            ?.callLoginFunction(loginFunction)
+                        : null),
+              ],
+            )
           ],
-        )
-      ],
-    );
+        ));
   }
 }
 
@@ -140,5 +153,9 @@ class WebViewContainerState extends State<WebViewContainer> {
 
   void reload() {
     _webViewController?.reload();
+  }
+
+  Future<bool> canGoBack() async {
+    _webViewController?.canGoBack();
   }
 }
