@@ -47,14 +47,21 @@ class WalletState extends State<Wallet> {
       final txHistory = await _myWallet.transactionHistory();
       _txHistory = txHistory;
       setState(() {});
-    } catch (__) {}
+    } catch (__) {
+      print("Something went wrong trying to load transaction history");
+    }
   }
 
   Widget transactionItem(transaction) {
     print(transaction['tags']);
-    final contentType = transaction['tags'].singleWhere(
-        (tag) => tag['name'] == 'Content-Type',
-        orElse: () => "No content-type specified");
+    var contentType;
+    try {
+      contentType = transaction['tags'].singleWhere(
+          (tag) => tag['name'] == 'Content-Type',
+          orElse: () => "No content-type specified");
+    } catch (__) {
+      contentType = "No content-type specified";
+    }
     return ListTile(
         title: Text(transaction['id']),
         subtitle: Text("Content type: ${contentType['value']}"),
@@ -90,7 +97,7 @@ class WalletState extends State<Wallet> {
     if (_txHistory == null) {
       widgetList.add(Center(
           child: RaisedButton(
-        onPressed: () => _loadTxHistory(),
+        onPressed: (_myWallet != null) ? () => _loadTxHistory() : null,
         child: Text("Load Transaction History"),
       )));
     } else {

@@ -60,11 +60,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 },
                 items: [
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.home),
+                    icon: Icon(Icons.attach_money),
                     title: Text("Wallet"),
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.developer_mode),
+                    icon: Icon(Icons.map),
                     title: Text("Browser"),
                   ),
                 ])));
