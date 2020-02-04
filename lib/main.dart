@@ -20,7 +20,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
-  String _url;
   File wallet;
 
   launchBrowser(int index, File wallet) {
@@ -47,7 +46,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         child: Wallet(notifyParent: launchBrowser)),
                     Offstage(
                       offstage: _currentIndex != 1,
-                      child: EnsName(url: _url),
+                      child: EnsName(),
                     )
                   ],
                 )),

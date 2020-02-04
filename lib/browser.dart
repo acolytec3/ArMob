@@ -10,15 +10,13 @@ final webViewKey = GlobalKey<WebViewContainerState>();
 var loginFunction;
 
 class EnsName extends StatefulWidget {
-  final String url;
-  const EnsName({Key key, this.url}) : super(key: key);
+  const EnsName({Key key}) : super(key: key);
   @override
   EnsNameState createState() => EnsNameState();
 }
 
 class EnsNameState extends State<EnsName> {
   String name;
-  String url;
 
   void setUrl(String resolvedName) async {
     var trimmedName = resolvedName;
@@ -35,7 +33,7 @@ class EnsNameState extends State<EnsName> {
       if (trimmedName.endsWith('.eth')) {
         try {
           final arTx = await resolve(nameHash(name));
-          url = 'https://arweave.net/' + arTx.toString();
+          final url = 'https://arweave.net/' + arTx.toString();
           webViewKey.currentState?.loadURL(url);
         } catch (__) {
           print("Name could not be resolved");
@@ -62,20 +60,23 @@ class EnsNameState extends State<EnsName> {
             }),
         Expanded(child: WebViewContainer(key: webViewKey)),
         ButtonBar(
+          alignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            IconButton(
-                icon: Icon(Icons.replay),
-                tooltip: "Reload",
-                onPressed: () => webViewKey.currentState?.reload()),
             IconButton(
                 icon: Icon(Icons.arrow_back),
                 tooltip: "Back",
                 onPressed: () => webViewKey.currentState?.goBack()),
             IconButton(
+                icon: Icon(Icons.replay),
+                tooltip: "Reload",
+                onPressed: () => webViewKey.currentState?.reload()),
+            IconButton(
                 icon: Icon(Icons.lock_open),
                 tooltip: "Unlock Wallet",
-                onPressed: (_walletString != null) ? () =>
-                    webViewKey.currentState?.callLoginFunction(loginFunction) : null),
+                onPressed: (_walletString != null)
+                    ? () => webViewKey.currentState
+                        ?.callLoginFunction(loginFunction)
+                    : null),
           ],
         )
       ],
