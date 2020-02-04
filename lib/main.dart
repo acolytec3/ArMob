@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (context) => walletData(),
+      create: (context) => WalletData(),
       child: HomePage(),
     ));
 }

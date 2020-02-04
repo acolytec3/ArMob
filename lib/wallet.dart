@@ -30,7 +30,7 @@ class WalletState extends State<Wallet> {
 
   void _openWallet() async {
     _fileName = await FilePicker.getFile();
-    Provider.of<walletData>(context, listen: false).updateWallet(_fileName);
+    Provider.of<WalletData>(context, listen: false).updateWallet(_fileName);
     final walletString = _fileName.readAsStringSync();
     try {
       _myWallet = Ar.Wallet(walletString);
@@ -87,7 +87,7 @@ class WalletState extends State<Wallet> {
       widgetList.add(Center(child: Text("Address: ${_myWallet.address}")));
       widgetList.add(Center(child: Text("Account Balance: $_balance")));
     }
-    if ((_myWallet != null) && (_txHistory == null)) {
+    if (_txHistory == null) {
       widgetList.add(Center(
           child: RaisedButton(
         onPressed: () => _loadTxHistory(),

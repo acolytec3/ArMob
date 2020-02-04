@@ -20,19 +20,36 @@ class EnsNameState extends State<EnsName> {
   String name;
   String url;
 
-  void setUrl(resolvedName) async {
-    name = resolvedName;
-    try {
-      final arTx = await resolve(nameHash(name));
-      url = 'https://arweave.net/' + arTx.toString();
-      webViewKey.currentState?.loadURL(url);
-    } catch (__) {
-      print("Name could not be resolved");
+  void setUrl(String resolvedName) async {
+    var trimmedName = resolvedName;
+    if (resolvedName.contains('http://')) {
+      trimmedName = resolvedName.substring(7);
+    } else {
+      if (resolvedName.contains('https://')) {
+        trimmedName = resolvedName.substring(8);
+      }
+    }
+    if (trimmedName.contains('/')) {
+      webViewKey.currentState?.loadURL("https://" + trimmedName);
+    } else {
+      if (trimmedName.endsWith('.eth')) {
+        try {
+          final arTx = await resolve(nameHash(name));
+          url = 'https://arweave.net/' + arTx.toString();
+          webViewKey.currentState?.loadURL(url);
+        } catch (__) {
+          print("Name could not be resolved");
+        }
+      } else {
+        webViewKey.currentState?.loadURL("https://" + trimmedName);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final _walletString =
+        Provider.of<WalletData>(context, listen: false).walletString;
     return Column(
       children: <Widget>[
         TextField(
@@ -57,8 +74,8 @@ class EnsNameState extends State<EnsName> {
             IconButton(
                 icon: Icon(Icons.lock_open),
                 tooltip: "Unlock Wallet",
-                onPressed: () =>
-                    webViewKey.currentState?.callLoginFunction(loginFunction)),
+                onPressed: (_walletString != null) ? () =>
+                    webViewKey.currentState?.callLoginFunction(loginFunction) : null),
           ],
         )
       ],
@@ -78,7 +95,8 @@ class WebViewContainerState extends State<WebViewContainer> {
 
   @override
   Widget build(BuildContext context) {
-    final _walletString = Provider.of<walletData>(context, listen: false).walletString;
+    final _walletString =
+        Provider.of<WalletData>(context, listen: false).walletString;
     return WebView(
       onWebViewCreated: (controller) {
         _webViewController = controller;
@@ -123,4 +141,3 @@ class WebViewContainerState extends State<WebViewContainer> {
     _webViewController?.reload();
   }
 }
-
