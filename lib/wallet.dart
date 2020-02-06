@@ -2,14 +2,14 @@ import 'package:arweave/appState.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:libarweave/libarweave.dart' as Ar;
 import 'package:flutter/material.dart';
-import 'package:arweave/browser.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 
 File _fileName;
 
 class Wallet extends StatefulWidget {
-  final Function(int index, File wallet) notifyParent;
+  final Function(int index, String url) notifyParent;
 
   const Wallet({Key key, @required this.notifyParent}) : super(key: key);
 
@@ -21,6 +21,7 @@ class WalletState extends State<Wallet> {
   var _myWallet;
   var _balance;
   List _txHistory;
+  final flutterWebViewPlugin = FlutterWebviewPlugin();
 
   @override
   void initState() {
@@ -67,9 +68,10 @@ class WalletState extends State<Wallet> {
         subtitle: Text("Content type: ${contentType['value']}"),
         enabled: contentType != "No content-type specified",
         onTap: () {
-          webViewKey.currentState
-              ?.loadURL("https://arweave.net/${transaction['id']}'");
-          widget.notifyParent(1, _fileName);
+          //Provider.of<WalletData>(context, listen:true).updateUrl("https://arweave.net/${transaction['id']}");
+          //flutterWebViewPlugin.reloadUrl("https://arweave.net/${transaction['id']}");
+          
+          widget.notifyParent(1, "https://arweave.net/${transaction['id']}");
         });
   }
 

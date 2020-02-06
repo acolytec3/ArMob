@@ -1,23 +1,24 @@
 import 'dart:convert';
 import 'package:arweave/ens.dart';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'package:arweave/appState.dart';
 
-final webViewKey = GlobalKey<WebViewContainerState>();
+//final webViewKey = GlobalKey<WebViewContainerState>();
 
 var loginFunction;
 
 Future<bool> _exitApp(BuildContext context) async {
-  if (await webViewKey.currentState?.canGoBack()) {
-    webViewKey.currentState?.goBack();
+  final flutterWebViewPlugin = FlutterWebviewPlugin();
+
+  if (await flutterWebViewPlugin.canGoBack()) {
+    flutterWebViewPlugin.goBack();
   } else {
     Scaffold.of(context)
         .showSnackBar(const SnackBar(content: Text("No page to go back to")));
-          return Future.value(false);
+    return Future.value(false);
   }
-
 }
 
 class EnsName extends StatefulWidget {
@@ -39,28 +40,74 @@ class EnsNameState extends State<EnsName> {
       }
     }
     if (trimmedName.contains('/')) {
-      webViewKey.currentState?.loadURL("https://" + trimmedName);
+      flutterWebViewPlugin.launch("https://" + trimmedName);
     } else {
       if (trimmedName.endsWith('.eth')) {
         try {
           final arTx = await resolve(nameHash(name));
           final url = 'https://arweave.net/' + arTx.toString();
-          webViewKey.currentState?.loadURL(url);
+          flutterWebViewPlugin.launch(url);
         } catch (__) {
           print("Name could not be resolved");
         }
       } else {
-        webViewKey.currentState?.loadURL("https://" + trimmedName);
+        flutterWebViewPlugin.launch("https://" + trimmedName);
       }
     }
   }
+
+  final flutterWebViewPlugin = FlutterWebviewPlugin();
 
   @override
   Widget build(BuildContext context) {
     final _walletString =
         Provider.of<WalletData>(context, listen: false).walletString;
+    final mes = jsonEncode(_walletString).toString();
     return WillPopScope(
-        onWillPop: () => _exitApp(context),
+      onWillPop: () => _exitApp(context),
+      child: Consumer<WalletData>(builder: (context, url, child) {
+        return WebviewScaffold(
+          javascriptChannels: <JavascriptChannel>[
+            JavascriptChannel(
+                name: '_print',
+                onMessageReceived: (JavascriptMessage msg) {
+                  loginFunction = msg.message;
+                }),
+          ].toSet(),
+          url: url.url,
+          bottomNavigationBar: ButtonBar(
+            alignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              IconButton(
+                  icon: Icon(Icons.arrow_back),
+                  tooltip: "Back",
+                  onPressed: () => flutterWebViewPlugin.goBack()),
+              IconButton(
+                  icon: Icon(Icons.replay),
+                  tooltip: "Reload",
+                  onPressed: () => flutterWebViewPlugin.reload()),
+              IconButton(
+                  icon: Icon(Icons.lock_open),
+                  tooltip: "Unlock Wallet",
+                  onPressed: (_walletString != null)
+                      ? () => flutterWebViewPlugin.evalJavascript('''
+          var walletString = $mes;
+          console.log(walletString);
+          queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
+          re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
+          loginFunctionName = (queries[0].text.match(re))[0];
+          window._print.postMessage(loginFunctionName);
+          window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])''')
+                      : null)
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+/*
         child: Column(
           children: <Widget>[
             TextField(
@@ -92,11 +139,8 @@ class EnsNameState extends State<EnsName> {
                         : null),
               ],
             )
-          ],
-        ));
-  }
-}
-
+          ],*/
+/*
 class WebViewContainer extends StatefulWidget {
   WebViewContainer({Key key}) : super(key: key);
 
@@ -159,3 +203,4 @@ class WebViewContainerState extends State<WebViewContainer> {
     _webViewController?.canGoBack();
   }
 }
+*/
