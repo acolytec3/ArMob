@@ -69,8 +69,8 @@ class WalletState extends State<Wallet> {
         enabled: contentType != "No content-type specified",
         onTap: () {
           //Provider.of<WalletData>(context, listen:true).updateUrl("https://arweave.net/${transaction['id']}");
-          //flutterWebViewPlugin.reloadUrl("https://arweave.net/${transaction['id']}");
-          
+ //         flutterWebViewPlugin.reloadUrl("https://arweave.net/${transaction['id']}");
+  //        flutterWebViewPlugin.dispose();
           widget.notifyParent(1, "https://arweave.net/${transaction['id']}");
         });
   }

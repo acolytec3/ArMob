@@ -28,7 +28,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _currentIndex = index;
     setState(() {});
     flutterWebViewPlugin.reloadUrl(url);
-    flutterWebViewPlugin.hide();
+    flutterWebViewPlugin.show();
   }
 
   @override
