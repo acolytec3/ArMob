@@ -2,14 +2,14 @@ import 'package:arweave/appState.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:libarweave/libarweave.dart' as Ar;
 import 'package:flutter/material.dart';
-import 'package:arweave/browser.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 
 File _fileName;
 
 class Wallet extends StatefulWidget {
-  final Function(int index, File wallet) notifyParent;
+  final Function(int index, String url) notifyParent;
 
   const Wallet({Key key, @required this.notifyParent}) : super(key: key);
 
@@ -21,6 +21,7 @@ class WalletState extends State<Wallet> {
   var _myWallet;
   var _balance;
   List _txHistory;
+  final flutterWebViewPlugin = FlutterWebviewPlugin();
 
   @override
   void initState() {
@@ -30,7 +31,6 @@ class WalletState extends State<Wallet> {
 
   void _openWallet() async {
     _fileName = await FilePicker.getFile();
-    Provider.of<WalletData>(context, listen: false).updateWallet(_fileName);
     final walletString = _fileName.readAsStringSync();
     try {
       _myWallet = Ar.Wallet(walletString);
@@ -39,6 +39,7 @@ class WalletState extends State<Wallet> {
     }
 
     _balance = await _myWallet.balance();
+    Provider.of<WalletData>(context, listen: false).updateWallet(_fileName, _balance);
     setState(() {});
   }
 
@@ -67,9 +68,7 @@ class WalletState extends State<Wallet> {
         subtitle: Text("Content type: ${contentType['value']}"),
         enabled: contentType != "No content-type specified",
         onTap: () {
-          webViewKey.currentState
-              ?.loadURL("https://arweave.net/${transaction['id']}'");
-          widget.notifyParent(1, _fileName);
+          widget.notifyParent(1, "https://arweave.net/${transaction['id']}");
         });
   }
 
@@ -90,10 +89,7 @@ class WalletState extends State<Wallet> {
         child: Text("Load Wallet"),
       )));
     }
-    if (_myWallet != null) {
-      widgetList.add(Center(child: Text("Address: ${_myWallet.address}")));
-      widgetList.add(Center(child: Text("Account Balance: $_balance")));
-    }
+
     if (_txHistory == null) {
       widgetList.add(Center(
           child: RaisedButton(

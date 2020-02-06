@@ -2,15 +2,15 @@ import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
 import 'package:arweave/wallet.dart';
 import 'package:arweave/appState.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => WalletData(),
-      child: HomePage(),
-    ));
+  runApp(ChangeNotifierProvider(
+    create: (context) => WalletData(),
+    child: HomePage(),
+  ));
 }
 
 class HomePage extends StatefulWidget {
@@ -22,11 +22,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   File wallet;
 
-  launchBrowser(int index, File wallet) {
+  final flutterWebViewPlugin = FlutterWebviewPlugin();
+  launchBrowser(int index, String url) {
     _currentIndex = index;
-    wallet = wallet;
-
     setState(() {});
+    flutterWebViewPlugin.reloadUrl(url);
+    flutterWebViewPlugin.show();
   }
 
   @override
@@ -34,9 +35,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return MaterialApp(
         title: 'ArMob',
         home: Scaffold(
-            appBar: AppBar(
-              title: Text("ArMob"),
-            ),
+            appBar: AppBar(title: Text("Wallet"), actions: <Widget>[
+              Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                Text(Provider.of<WalletData>(context, listen: true)
+                        .walletBalance
+                        .toStringAsFixed(6) +
+                    " AR"),
+              ])
+            ]),
             body: SafeArea(
                 top: false,
                 child: Stack(
@@ -56,6 +62,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   setState(() {
                     _currentIndex = index;
                   });
+                  if (_currentIndex == 0) {
+                    flutterWebViewPlugin.hide();
+                  } else
+                    flutterWebViewPlugin.show();
                 },
                 items: [
                   BottomNavigationBarItem(
