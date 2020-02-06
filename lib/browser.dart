@@ -40,18 +40,18 @@ class EnsNameState extends State<EnsName> {
       }
     }
     if (trimmedName.contains('/')) {
-      flutterWebViewPlugin.launch("https://" + trimmedName);
+      flutterWebViewPlugin.reloadUrl("https://" + trimmedName);
     } else {
       if (trimmedName.endsWith('.eth')) {
         try {
           final arTx = await resolve(nameHash(name));
           final url = 'https://arweave.net/' + arTx.toString();
-          flutterWebViewPlugin.launch(url);
+          flutterWebViewPlugin.reloadUrl(url);
         } catch (__) {
           print("Name could not be resolved");
         }
       } else {
-        flutterWebViewPlugin.launch("https://" + trimmedName);
+        flutterWebViewPlugin.reloadUrl("https://" + trimmedName);
       }
     }
   }
@@ -67,6 +67,15 @@ class EnsNameState extends State<EnsName> {
       onWillPop: () => _exitApp(context),
       child: Consumer<WalletData>(builder: (context, url, child) {
         return WebviewScaffold(
+          appBar: AppBar(
+            title:TextField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Address',
+                ),
+                onSubmitted: (value) {
+                  setUrl(value);
+                })),
           javascriptChannels: <JavascriptChannel>[
             JavascriptChannel(
                 name: '_print',
