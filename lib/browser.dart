@@ -75,7 +75,8 @@ class EnsNameState extends State<EnsName> {
                 ),
                 onSubmitted: (value) {
                   setUrl(value);
-                })),
+                }),
+                backgroundColor: Color(0xFFFFFFFF),),
           javascriptChannels: <JavascriptChannel>[
             JavascriptChannel(
                 name: '_print',
@@ -83,7 +84,7 @@ class EnsNameState extends State<EnsName> {
                   loginFunction = msg.message;
                 }),
           ].toSet(),
-          url: url.url,
+          url: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
           bottomNavigationBar: ButtonBar(
             alignment: MainAxisAlignment.spaceAround,
             children: <Widget>[

@@ -7,11 +7,10 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => WalletData(),
-      child: HomePage(),
-    ));
+  runApp(ChangeNotifierProvider(
+    create: (context) => WalletData(),
+    child: HomePage(),
+  ));
 }
 
 class HomePage extends StatefulWidget {
@@ -22,7 +21,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   File wallet;
-  
+
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   launchBrowser(int index, String url) {
     _currentIndex = index;
@@ -36,9 +35,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return MaterialApp(
         title: 'ArMob',
         home: Scaffold(
-            appBar: AppBar(
-              title: Text("ArMob"),
-            ),
+            appBar: AppBar(title: Text("Wallet"), actions: <Widget>[
+              Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                Text(Provider.of<WalletData>(context, listen: true)
+                        .walletBalance
+                        .toStringAsFixed(6) +
+                    " AR"),
+              ])
+            ]),
             body: SafeArea(
                 top: false,
                 child: Stack(
@@ -58,10 +62,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   setState(() {
                     _currentIndex = index;
                   });
-                  if (_currentIndex == 0){
+                  if (_currentIndex == 0) {
                     flutterWebViewPlugin.hide();
-                  }
-                  else flutterWebViewPlugin.show();
+                  } else
+                    flutterWebViewPlugin.show();
                 },
                 items: [
                   BottomNavigationBarItem(

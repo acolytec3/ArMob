@@ -31,7 +31,6 @@ class WalletState extends State<Wallet> {
 
   void _openWallet() async {
     _fileName = await FilePicker.getFile();
-    Provider.of<WalletData>(context, listen: false).updateWallet(_fileName);
     final walletString = _fileName.readAsStringSync();
     try {
       _myWallet = Ar.Wallet(walletString);
@@ -40,6 +39,7 @@ class WalletState extends State<Wallet> {
     }
 
     _balance = await _myWallet.balance();
+    Provider.of<WalletData>(context, listen: false).updateWallet(_fileName, _balance);
     setState(() {});
   }
 
@@ -68,9 +68,6 @@ class WalletState extends State<Wallet> {
         subtitle: Text("Content type: ${contentType['value']}"),
         enabled: contentType != "No content-type specified",
         onTap: () {
-          //Provider.of<WalletData>(context, listen:true).updateUrl("https://arweave.net/${transaction['id']}");
- //         flutterWebViewPlugin.reloadUrl("https://arweave.net/${transaction['id']}");
-  //        flutterWebViewPlugin.dispose();
           widget.notifyParent(1, "https://arweave.net/${transaction['id']}");
         });
   }
@@ -92,10 +89,7 @@ class WalletState extends State<Wallet> {
         child: Text("Load Wallet"),
       )));
     }
-    if (_myWallet != null) {
-      widgetList.add(Center(child: Text("Address: ${_myWallet.address}")));
-      widgetList.add(Center(child: Text("Account Balance: $_balance")));
-    }
+
     if (_txHistory == null) {
       widgetList.add(Center(
           child: RaisedButton(

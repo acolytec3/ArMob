@@ -5,16 +5,18 @@ import 'package:flutter/material.dart';
 class WalletData extends ChangeNotifier{
   File _walletFile;
   String _walletString;
+  double _currentBalance = 0;
+
   int _currentIndex = 0;
-  String _url = "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html";
 
   String get walletString => _walletString;
 
-  String get url => _url;
+  double get walletBalance => _currentBalance;
 
-  void updateWallet(File wallet) {
+  void updateWallet(File wallet, double balance) {
     _walletFile = wallet;
     _walletString = wallet.readAsStringSync();
+    _currentBalance = balance;
     notifyListeners();
   }
 
@@ -23,9 +25,5 @@ class WalletData extends ChangeNotifier{
     notifyListeners();
   }
 
-  void updateUrl (String url) {
-    _url = url;
-    notifyListeners();
-  }
 }
 
