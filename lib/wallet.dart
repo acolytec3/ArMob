@@ -19,6 +19,7 @@ class Wallet extends StatefulWidget {
 class WalletState extends State<Wallet> {
   var _myWallet;
   var _balance;
+  var loading = true;
   List _txHistory;
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   final storage = FlutterSecureStorage();
@@ -39,6 +40,7 @@ class WalletState extends State<Wallet> {
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_wallet, _balance);
     }
+    loading = false;
   }
 
   void _openWallet() async {
@@ -65,6 +67,8 @@ class WalletState extends State<Wallet> {
     Provider.of<WalletData>(context, listen: false).updateWallet(null, 0);
     _balance = 0;
     _txHistory = null;
+    _myWallet = null;
+    setState((){});
   }
 
   void _loadTxHistory() async {
@@ -133,6 +137,6 @@ class WalletState extends State<Wallet> {
 
   @override
   Widget build(context) {
-    return Column(children: buildWallet());
+    return Column(children: loading ? [Center(child: const CircularProgressIndicator())] : buildWallet());
   }
 }
