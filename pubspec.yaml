@@ -29,6 +29,7 @@ dependencies:
     path: ../libarweave/
   file_picker: ^1.4.2
   provider: ^3.0.0
+  flutter_secure_storage: ^3.3.1
 
 dev_dependencies:
   flutter_test:

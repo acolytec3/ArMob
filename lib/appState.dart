@@ -1,9 +1,8 @@
-import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class WalletData extends ChangeNotifier{
-  File _walletFile;
   String _walletString;
   double _currentBalance = 0;
 
@@ -13,9 +12,8 @@ class WalletData extends ChangeNotifier{
 
   double get walletBalance => _currentBalance;
 
-  void updateWallet(File wallet, double balance) {
-    _walletFile = wallet;
-    _walletString = wallet.readAsStringSync();
+  void updateWallet(String walletString, double balance) {
+    _walletString = walletString;
     _currentBalance = balance;
     notifyListeners();
   }
