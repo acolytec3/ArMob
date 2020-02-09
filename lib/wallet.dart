@@ -4,7 +4,6 @@ import 'package:libarweave/libarweave.dart' as Ar;
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Wallet extends StatefulWidget {

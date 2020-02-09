@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'package:arweave/appState.dart';
+import 'dart:async';
 
 var loginFunction;
 
@@ -28,6 +29,9 @@ class EnsName extends StatefulWidget {
 
 class EnsNameState extends State<EnsName> {
   String name;
+  double _progress;
+
+  final flutterWebViewPlugin = FlutterWebviewPlugin();
 
   void setUrl(String resolvedName) async {
     var trimmedName = resolvedName;
@@ -55,7 +59,32 @@ class EnsNameState extends State<EnsName> {
     }
   }
 
-  final flutterWebViewPlugin = FlutterWebviewPlugin();
+  StreamSubscription<double> _onProgressChanged;
+
+  @override
+  void initState() {
+    super.initState();
+
+    flutterWebViewPlugin.close();
+
+    _onProgressChanged =
+        flutterWebViewPlugin.onProgressChanged.listen((double progress) {
+      if (mounted) {
+        setState(() {
+          _progress = progress;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _onProgressChanged.cancel();
+
+    flutterWebViewPlugin.dispose();
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,15 +96,18 @@ class EnsNameState extends State<EnsName> {
       child: Consumer<WalletData>(builder: (context, url, child) {
         return WebviewScaffold(
           appBar: AppBar(
-            title:TextField(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Address',
-                ),
-                onSubmitted: (value) {
-                  setUrl(value);
-                }),
-                backgroundColor: Color(0xFFFFFFFF),),
+              title: TextField(
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Address',
+                  ),
+                  onSubmitted: (value) {
+                    setUrl(value);
+                  }),
+              backgroundColor: Color(0xFFFFFFFF),
+              bottom: PreferredSize(
+                  preferredSize: Size(double.infinity, 1.0),
+                  child: (LinearProgressIndicator(value: _progress)))),
           javascriptChannels: <JavascriptChannel>[
             JavascriptChannel(
                 name: '_print',
@@ -83,7 +115,8 @@ class EnsNameState extends State<EnsName> {
                   loginFunction = msg.message;
                 }),
           ].toSet(),
-          url: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
+          url:
+              "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
           bottomNavigationBar: ButtonBar(
             alignment: MainAxisAlignment.spaceAround,
             children: <Widget>[

@@ -2,7 +2,6 @@ import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
 import 'package:arweave/wallet.dart';
 import 'package:arweave/appState.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
@@ -25,8 +24,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   
-
-
   launchBrowser(int index, String url) {
     _currentIndex = index;
     setState(() {});
