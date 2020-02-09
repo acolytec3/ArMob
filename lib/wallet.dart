@@ -67,7 +67,7 @@ class WalletState extends State<Wallet> {
     _balance = 0;
     _txHistory = null;
     _myWallet = null;
-    setState((){});
+    setState(() {});
   }
 
   void _loadTxHistory() async {
@@ -136,6 +136,14 @@ class WalletState extends State<Wallet> {
 
   @override
   Widget build(context) {
-    return Column(children: loading ? [Center(child: const CircularProgressIndicator())] : buildWallet());
+    return Column(
+        children: loading
+            ? [
+                Center(
+                    child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: const CircularProgressIndicator()))
+              ]
+            : buildWallet());
   }
 }
