@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
+import 'dart:typed_data';
+import 'dart:convert';
 
 class Wallet extends StatefulWidget {
   final Function(int index, String url) notifyParent;
@@ -22,6 +25,29 @@ class WalletState extends State<Wallet> {
   List _txHistory;
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   final storage = FlutterSecureStorage();
+
+  static const platform = const MethodChannel('armob.dev/signer');
+
+List<int> _base64ToBytes(String encoded) {
+  encoded += new List.filled((4 - encoded.length % 4) % 4, "=").join();
+  return base64Url.decode(encoded);
+}
+
+BigInt _base64ToInt(String encoded) {
+  final b256 = new BigInt.from(256);
+  return _base64ToBytes(encoded)
+      .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
+}
+  Future<List<int>> signTransaction (Uint8List rawTransaction) async {
+    try {
+      List<int> signedTransaction = await platform.invokeMethod('signTransaction',{'rawTransaction': rawTransaction, 'n' : _base64ToInt(_myWallet.jwk['n']).toString(), 'd': _base64ToInt(_myWallet.jwk['d']).toString()});
+      print('Signed transaction is: $signedTransaction');
+      return signedTransaction;
+    }
+    on PlatformException catch (e) {
+      print('Platform error occurred: $e');
+    }  
+  }
 
   @override
   void initState() {
@@ -135,7 +161,7 @@ class WalletState extends State<Wallet> {
   }
 
   @override
-  Widget build(context) {
+  Widget build(context) {  
     return Column(
         children: loading
             ? [
