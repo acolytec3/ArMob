@@ -16,8 +16,6 @@ class MainActivity: FlutterActivity() {
 
     fun signTransaction(rawTransaction: ByteArray? , n : String?, d : String?): ByteArray? {
         val fact = KeyFactory.getInstance("RSA")
-        println(n)
-        println(d)
         val spec = RSAPrivateKeySpec(BigInteger(n),BigInteger(d))
         val priv = fact.generatePrivate(spec)
         val s = Signature.getInstance("SHA256withRSA/PSS")

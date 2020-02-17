@@ -19,40 +19,56 @@ class Wallet extends StatefulWidget {
 }
 
 class WalletState extends State<Wallet> {
-  var _myWallet;
+  //Wallet details
+  Ar.Wallet _myWallet;
   var _balance;
-  var loading = true;
   List _txHistory;
+
+  //Transaction details
+  String _content;
+  String _transactionCost = '0';
+
+  //App copmonents
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   final storage = FlutterSecureStorage();
+  var loading = true;
 
   static const platform = const MethodChannel('armob.dev/signer');
 
-List<int> _base64ToBytes(String encoded) {
-  encoded += new List.filled((4 - encoded.length % 4) % 4, "=").join();
-  return base64Url.decode(encoded);
-}
+  BigInt _base64ToInt(String encoded) {
+    final b256 = new BigInt.from(256);
+    encoded += new List.filled((4 - encoded.length % 4) % 4, "=").join();
+    return base64Url
+        .decode(encoded)
+        .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
+  }
 
-BigInt _base64ToInt(String encoded) {
-  final b256 = new BigInt.from(256);
-  return _base64ToBytes(encoded)
-      .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
-}
-  Future<List<int>> signTransaction (Uint8List rawTransaction) async {
+  void postTransaction() async {
+    final txAnchor = await Ar.Transaction.transactionAnchor();
+    List<int> rawTransaction = _myWallet.createTransaction(
+        txAnchor, _transactionCost,
+        data: _content);
     try {
-      List<int> signedTransaction = await platform.invokeMethod('signTransaction',{'rawTransaction': rawTransaction, 'n' : _base64ToInt(_myWallet.jwk['n']).toString(), 'd': _base64ToInt(_myWallet.jwk['d']).toString()});
+      List<int> signedTransaction =
+          await platform.invokeMethod('signTransaction', {
+        'rawTransaction': Uint8List.fromList(rawTransaction),
+        'n': _base64ToInt(_myWallet.jwk['n']).toString(),
+        'd': _base64ToInt(_myWallet.jwk['d']).toString()
+      });
       print('Signed transaction is: $signedTransaction');
-      return signedTransaction;
-    }
-    on PlatformException catch (e) {
+      final result = await _myWallet.postTransaction(
+          signedTransaction, txAnchor, _transactionCost,
+          data: _content);
+      print(result);
+    } on PlatformException catch (e) {
       print('Platform error occurred: $e');
-    }  
+    }
   }
 
   @override
   void initState() {
     super.initState();
-    Ar.setPeer();
+    Ar.setPeer(peerAddress: 'https://arweave.net:443');
     readStorage();
   }
 
@@ -60,7 +76,7 @@ BigInt _base64ToInt(String encoded) {
     final storage = FlutterSecureStorage();
     var _wallet = await storage.read(key: 'walletString');
     if (_wallet != null) {
-      _myWallet = Ar.Wallet(_wallet);
+      _myWallet = Ar.Wallet(jsonWebKey: _wallet);
       _balance = await _myWallet.balance();
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_wallet, _balance);
@@ -75,7 +91,7 @@ BigInt _base64ToInt(String encoded) {
     await storage.write(key: "walletString", value: walletString);
 
     try {
-      _myWallet = Ar.Wallet(walletString);
+      _myWallet = Ar.Wallet(jsonWebKey: walletString);
     } catch (__) {
       print("Invalid Wallet File");
     }
@@ -96,13 +112,38 @@ BigInt _base64ToInt(String encoded) {
     setState(() {});
   }
 
+  void _getContent() async {
+    final _fileName = await FilePicker.getFile();
+    _content = _fileName.readAsStringSync();
+    _transactionCost = await Ar.Transaction.transactionPrice(data: _content);
+    setState(() {});
+  }
+
+  void _createTransaction() async {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+              content: Column(children: <Widget>[
+            Center(child: Text('Create Transaction')),
+            FlatButton(
+                child: Text('Select Content'), onPressed: () => _getContent()),
+            Center(child: Text('Transaction price: ${Ar.winstonToAr(_transactionCost)}')),
+            Center(
+                child: FlatButton(
+                    child: Text('Post Transastion'),
+                    onPressed: () => postTransaction()))
+          ]));
+        });
+  }
+
   void _loadTxHistory() async {
     try {
-      final txHistory = await _myWallet.transactionHistory();
+      final txHistory = await _myWallet.dataTransactionHistory();
       _txHistory = txHistory;
       setState(() {});
     } catch (__) {
-      print("Something went wrong trying to load transaction history");
+      print("Error loading tx history: $__");
     }
   }
 
@@ -127,8 +168,13 @@ BigInt _base64ToInt(String encoded) {
 
   List<Widget> buildTxHistory() {
     var txnList = <Widget>[];
-    for (var txn in _txHistory) {
-      txnList.add(transactionItem(txn));
+    try {
+      for (var txn in _txHistory) {
+        txnList.add(transactionItem(txn));
+      }
+    } catch (__) {
+      print('Error retrieving transactions: $__');
+      txnList.add(Text('No transactions retrieved'));
     }
     return txnList;
   }
@@ -145,6 +191,10 @@ BigInt _base64ToInt(String encoded) {
       widgetList.add(Center(
           child: RaisedButton(
               onPressed: () => _removeWallet(), child: Text("Remove Wallet"))));
+      widgetList.add(FloatingActionButton(
+        onPressed: () => _createTransaction(),
+        child: Icon(Icons.attach_money),
+      ));
     }
 
     if (_txHistory == null) {
@@ -161,7 +211,7 @@ BigInt _base64ToInt(String encoded) {
   }
 
   @override
-  Widget build(context) {  
+  Widget build(context) {
     return Column(
         children: loading
             ? [
