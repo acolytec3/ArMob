@@ -8,7 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'dart:convert';
-
+import 'package:mime_type/mime_type.dart';
 
 class Wallet extends StatefulWidget {
   final Function(int index, String url) notifyParent;
@@ -28,45 +28,14 @@ class WalletState extends State<Wallet> {
   //Transaction details
   String _content;
   String _transactionCost = '0';
+  String _fileName;
 
-  //App copmonents
+  //App components
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   final storage = FlutterSecureStorage();
   var loading = true;
 
   static const platform = const MethodChannel('armob.dev/signer');
-
-  BigInt _base64ToInt(String encoded) {
-    final b256 = new BigInt.from(256);
-    encoded += new List.filled((4 - encoded.length % 4) % 4, "=").join();
-    return base64Url
-        .decode(encoded)
-        .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
-  }
-
-  void postTransaction() async {
-    final txAnchor = await Ar.Transaction.transactionAnchor();
-    final tags = [{'name':'Content-Type','value':'text/plain'},{'name' : 'User-Agent', 'value' : 'Armob 0.1'}];
-    List<int> rawTransaction = _myWallet.createTransaction(
-        txAnchor, _transactionCost,
-         data: _content, tags : tags);
-         
-    try {
-      List<int> signedTransaction =
-          await platform.invokeMethod('signTransaction', {
-        'rawTransaction': Uint8List.fromList(rawTransaction),
-        'n': _base64ToInt(_myWallet.jwk['n']).toString(),
-        'd': _base64ToInt(_myWallet.jwk['d']).toString()
-      });
-      print('Signed transaction is: $signedTransaction');
-      final result = await _myWallet.postTransaction(
-          signedTransaction, txAnchor, _transactionCost,
-                   data: _content, tags : tags);
-      print(result);
-    } on PlatformException catch (e) {
-      print('Platform error occurred: $e');
-    }
-  }
 
   @override
   void initState() {
@@ -75,6 +44,7 @@ class WalletState extends State<Wallet> {
     readStorage();
   }
 
+  //Loading/Unloading Wallet
   void readStorage() async {
     final storage = FlutterSecureStorage();
     var _wallet = await storage.read(key: 'walletString');
@@ -115,9 +85,44 @@ class WalletState extends State<Wallet> {
     setState(() {});
   }
 
+  //Transaction Submission
+  BigInt _base64ToInt(String encoded) {
+    final b256 = new BigInt.from(256);
+    encoded += new List.filled((4 - encoded.length % 4) % 4, "=").join();
+    return base64Url
+        .decode(encoded)
+        .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
+  }
+
+  void submitTransaction() async {
+    final contentType = mime(_fileName);
+    final txAnchor = await Ar.Transaction.transactionAnchor();
+    final tags = [{'name':'Content-Type','value':(contentType == null ? "None" : contentType)},{'name' : 'User-Agent', 'value' : 'Armob 0.1'}];
+    List<int> rawTransaction = _myWallet.createTransaction(
+        txAnchor, _transactionCost,
+         data: _content, tags : tags);
+
+    try {
+      List<int> signedTransaction =
+          await platform.invokeMethod('signTransaction', {
+        'rawTransaction': Uint8List.fromList(rawTransaction),
+        'n': _base64ToInt(_myWallet.jwk['n']).toString(),
+        'd': _base64ToInt(_myWallet.jwk['d']).toString()
+      });
+      print('Signed transaction is: $signedTransaction');
+      final result = await _myWallet.postTransaction(
+          signedTransaction, txAnchor, _transactionCost,
+                   data: _content, tags : tags);
+      print(result);
+    } on PlatformException catch (e) {
+      print('Platform error occurred: $e');
+    }
+  }
+
   void _getContent() async {
-    final _fileName = await FilePicker.getFile();
-    _content = _fileName.readAsStringSync();
+    final fileName = await FilePicker.getFile();
+    _fileName = (fileName.path).split('/').last;
+    _content = fileName.readAsStringSync();
     _transactionCost = await Ar.Transaction.transactionPrice(data: _content);
     setState(() {});
   }
@@ -134,8 +139,8 @@ class WalletState extends State<Wallet> {
             Center(child: Text('Transaction price: ${Ar.winstonToAr(_transactionCost)}')),
             Center(
                 child: FlatButton(
-                    child: Text('Post Transastion'),
-                    onPressed: () => postTransaction()))
+                    child: Text('Submit Transaction'),
+                    onPressed: () => submitTransaction()))
           ]));
         });
   }
