@@ -1,6 +1,6 @@
 # ArMob
 
-A mobile browser for the permaweb
+A mobile wallet/browser for the permaweb
 
 ## Getting Started
 
