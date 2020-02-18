@@ -1,5 +1,6 @@
 import 'package:arweave/appState.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:libarweave/libarweave.dart' as Ar;
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
@@ -70,7 +71,7 @@ class WalletState extends State<Wallet> {
     }
 
     _balance = await _myWallet.balance();
-
+    _loadTxHistory();
     Provider.of<WalletData>(context, listen: false)
         .updateWallet(walletString, _balance);
     setState(() {});
@@ -97,10 +98,16 @@ class WalletState extends State<Wallet> {
   void submitTransaction() async {
     final contentType = mime(_fileName);
     final txAnchor = await Ar.Transaction.transactionAnchor();
-    final tags = [{'name':'Content-Type','value':(contentType == null ? "None" : contentType)},{'name' : 'User-Agent', 'value' : 'Armob 0.1'}];
+    final tags = [
+      {
+        'name': 'Content-Type',
+        'value': (contentType == null ? "None" : contentType)
+      },
+      {'name': 'User-Agent', 'value': 'Armob 0.1'}
+    ];
     List<int> rawTransaction = _myWallet.createTransaction(
         txAnchor, _transactionCost,
-         data: _content, tags : tags);
+        data: _content, tags: tags);
 
     try {
       List<int> signedTransaction =
@@ -112,7 +119,7 @@ class WalletState extends State<Wallet> {
       print('Signed transaction is: $signedTransaction');
       final result = await _myWallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
-                   data: _content, tags : tags);
+          data: _content, tags: tags);
       print(result);
     } on PlatformException catch (e) {
       print('Platform error occurred: $e');
@@ -136,7 +143,9 @@ class WalletState extends State<Wallet> {
             Center(child: Text('Create Transaction')),
             FlatButton(
                 child: Text('Select Content'), onPressed: () => _getContent()),
-            Center(child: Text('Transaction price: ${Ar.winstonToAr(_transactionCost)}')),
+            Center(
+                child: Text(
+                    'Transaction price: ${Ar.winstonToAr(_transactionCost)}')),
             Center(
                 child: FlatButton(
                     child: Text('Submit Transaction'),
@@ -162,7 +171,7 @@ class WalletState extends State<Wallet> {
           (tag) => tag['name'] == 'Content-Type',
           orElse: () => "No content-type specified");
     } catch (__) {
-      contentType = {'value':"None"};
+      contentType = {'value': "None"};
     }
     return ListTile(
         title: Text(transaction['id']),
@@ -185,47 +194,39 @@ class WalletState extends State<Wallet> {
     return txnList;
   }
 
-  List<Widget> buildWallet() {
-    List<Widget> widgetList = [];
-    if (Provider.of<WalletData>(context, listen: true).walletString == null) {
-      widgetList.add(Center(
-          child: RaisedButton(
-        onPressed: () => _openWallet(),
-        child: Text("Load Wallet"),
-      )));
-    } else {
-      widgetList.add(Center(
-          child: RaisedButton(
-              onPressed: () => _removeWallet(), child: Text("Remove Wallet"))));
-      widgetList.add(FloatingActionButton(
-        onPressed: () => _createTransaction(),
-        child: Icon(Icons.attach_money),
-      ));
-    }
-
-    if (_txHistory == null) {
-      widgetList.add(Center(
-          child: RaisedButton(
-        onPressed: (_myWallet != null) ? () => _loadTxHistory() : null,
-        child: Text("Load Transaction History"),
-      )));
-    } else {
-      widgetList.add(Expanded(child: ListView(children: buildTxHistory())));
-    }
-
-    return widgetList;
-  }
-
   @override
   Widget build(context) {
-    return Column(
-        children: loading
-            ? [
-                Center(
-                    child: Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: const CircularProgressIndicator()))
-              ]
-            : buildWallet());
+    return DefaultTabController(
+        length: 2,
+        child: Scaffold(
+            appBar: AppBar(
+                bottom: TabBar(tabs: [
+              Icon(Icons.monetization_on),
+              Icon(Icons.library_books),
+            ])),
+            body: TabBarView(children: [
+              Center(
+                child: Text('All Transactions -- coming soon!'),
+              ),
+              (Provider.of<WalletData>(context, listen: true).walletString ==
+                      null)
+                  ? (Center(child: Text('Open wallet to see transactions')))
+                  : ListView(children: buildTxHistory())
+            ]),
+            floatingActionButton:
+                SpeedDial(animatedIcon: AnimatedIcons.view_list, children: [
+              SpeedDialChild(
+                  child: Icon(Icons.attach_money),
+                  label: "Open/Close Wallet",
+                  onTap: () => (Provider.of<WalletData>(context, listen: true)
+                              .walletString ==
+                          null)
+                      ? _openWallet()
+                      : _removeWallet()),
+              SpeedDialChild(
+                  child: Icon(Icons.send),
+                  label: 'Archive File',
+                  onTap: () => _createTransaction())
+            ])));
   }
 }
