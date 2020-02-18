@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 
+
 class Wallet extends StatefulWidget {
   final Function(int index, String url) notifyParent;
 
@@ -45,9 +46,11 @@ class WalletState extends State<Wallet> {
 
   void postTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
+    final tags = [{'name':'Content-Type','value':'text/plain'},{'name' : 'User-Agent', 'value' : 'Armob 0.1'}];
     List<int> rawTransaction = _myWallet.createTransaction(
         txAnchor, _transactionCost,
-        data: _content);
+         data: _content, tags : tags);
+         
     try {
       List<int> signedTransaction =
           await platform.invokeMethod('signTransaction', {
@@ -58,7 +61,7 @@ class WalletState extends State<Wallet> {
       print('Signed transaction is: $signedTransaction');
       final result = await _myWallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
-          data: _content);
+                   data: _content, tags : tags);
       print(result);
     } on PlatformException catch (e) {
       print('Platform error occurred: $e');
@@ -148,19 +151,17 @@ class WalletState extends State<Wallet> {
   }
 
   Widget transactionItem(transaction) {
-    print(transaction['tags']);
-    var contentType;
+    var contentType = {};
     try {
       contentType = transaction['tags'].singleWhere(
           (tag) => tag['name'] == 'Content-Type',
           orElse: () => "No content-type specified");
     } catch (__) {
-      contentType = "No content-type specified";
+      contentType = {'value':"None"};
     }
     return ListTile(
         title: Text(transaction['id']),
         subtitle: Text("Content type: ${contentType['value']}"),
-        enabled: contentType != "No content-type specified",
         onTap: () {
           widget.notifyParent(1, "https://arweave.net/${transaction['id']}");
         });
