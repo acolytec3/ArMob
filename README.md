@@ -2,7 +2,8 @@
 
 A mobile wallet/browser for the permaweb
 
-## Getting Started
+## A visual
+![ArMob app navigation](arweave.gif)
 
 ## Wallet Functionality
 
