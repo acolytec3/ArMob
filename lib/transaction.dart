@@ -19,7 +19,7 @@ class TransactionState extends State<Transaction> {
   String _fileName;
   String _transactionCost = '0';
   String _content;
-  List _tags;
+  List _tags = [];
 
   static const platform = const MethodChannel('armob.dev/signer');
 
@@ -70,18 +70,33 @@ class TransactionState extends State<Transaction> {
       print('Platform error occurred: $e');
     }
   }
+  Widget tagTile(tag) {
+      return ListTile(
+        title: Text('${tag['name']}: ${tag['value']}'),
+        );
+  }
+
+  List<Widget> tagList() {
+    var tagList = <Widget>[];
+      for (var tag in _tags) {
+        tagList.add(tagTile(tag));
+      }
+    return tagList;
+  }
 
   @override
   Widget build(context) {
     return Scaffold(
       appBar: AppBar(title: Text('Transaction Form')),
       body: Column(children: <Widget>[
-        Center(
-            child: Text(
-                'Transaction cost: ${(Ar.winstonToAr(_transactionCost)).toString()}')),
+        Row(children: <Widget>[
+          Padding(child: Text('Transaction Cost'),padding: const EdgeInsets.all(20.0)),
+          Padding(child: Text((Ar.winstonToAr(_transactionCost)).toString()),padding: const EdgeInsets.all(20.0))
+        ]),
+        Text('Transaction Tags', style: TextStyle(fontWeight: FontWeight.bold)),
         Expanded(
             child: (_content != null)
-                ? Text(_tags.toString())
+                ? ListView(children: tagList())
                 : Text('No content yet')),
         ButtonBar(alignment: MainAxisAlignment.spaceAround, children: <Widget>[
           Column(children: <Widget>[
