@@ -24,9 +24,9 @@ class TransactionState extends State<Transaction> {
   static const platform = const MethodChannel('armob.dev/signer');
 
   void _getContent() async {
-    final fileName = await FilePicker.getFile();
-    _fileName = (fileName.path).split('/').last;
-    _content = fileName.readAsStringSync();
+    final file = await FilePicker.getFile();
+    _fileName = (file.path).split('/').last;
+    _content = file.readAsStringSync();
     final contentType = mime(_fileName);
     _transactionCost = await Ar.Transaction.transactionPrice(data: _content);
     _tags = [

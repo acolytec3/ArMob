@@ -123,8 +123,8 @@ class WalletState extends State<Wallet> {
         child: Scaffold(
             appBar: AppBar(
                 bottom: TabBar(tabs: [
-              Icon(Icons.monetization_on),
-              Icon(Icons.library_books),
+              Tab(text: 'All Transactions', icon: Icon(Icons.monetization_on)),
+              Tab(text: 'Data Transactions', icon: Icon(Icons.library_books)),
             ])),
             body: TabBarView(children: [
               Center(
