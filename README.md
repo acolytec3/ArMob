@@ -6,9 +6,9 @@ A mobile browser for the permaweb
 
 ## Wallet Functionality
 
-* Drop a wallet in the `load wallet` file picker to see wallet address and balance
-* Tap `load transactions` to see all data transactions
-* Tap on any transaction to open the resource in the browser window
+- Load/unload wallet using floating action button
+- Swipe left/right to see all/data tranasactions
+- Submit data transactions to Arweave
 
 ## Browser functionality
 
@@ -18,22 +18,12 @@ A mobile browser for the permaweb
 * Click on the unlock button on the browser nav buttons to attempt to unlock wallet
 Note - wallet injection only works on some Arweave apps at present (e.g. ArweaveID, Weavemail,etc)
 
-### Decentralized ENS navigation
 
-* Type weavemail.acolytec3.eth in address bar
-* Navigate to Weavemail using [ENS](https://app.ens.domains)
-
-#### Decentralized ENS name registration
-
-Note - this currently works with Ropsten testnet ENS registrar
-
-* Navigate to [ENS](https://app.ens.domains)
-* Register a domain name on Ropsten network
-* Add text record with URL key and value corresponding to an Arweave transaction ID
 
 ## Roadmap
 
-* Expand wallet injection feature to support more login patterns
-* Add secure storage for loaded wallets between app logins
-* Support biometric/password login
-* Enhance `transaction history` with better visibility on content of each data transaction
+- [ ] Expand wallet injection feature to support more login patterns
+- [x] Add secure storage for loaded wallets between app logins- 
+- [ ] Support biometric/password login
+- [ ] Enhance `Data Transactions` view with better visibility on content of each data transaction
+- [ ] Fix ENS app-name registration/resolution
