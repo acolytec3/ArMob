@@ -14,11 +14,13 @@ A mobile browser for the permaweb
 
 ### Arweave app Auto-login
 
-* Tap on any app from [ArweaveApps](https://arweaveapps.com)
-* Click on the unlock button on the browser nav buttons to attempt to unlock wallet
+- Tap on any app from [ArweaveApps](https://arweaveapps.com)
+- Click on the unlock button on the browser nav buttons to attempt to unlock wallet
 Note - wallet injection only works on some Arweave apps at present (e.g. ArweaveID, Weavemail,etc)
 
+### ENS Name Resolution
 
+- Currently broken
 
 ## Roadmap
 
