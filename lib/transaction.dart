@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:mime_type/mime_type.dart';
-import 'package:http/http.dart';
+
 
 class Transaction extends StatefulWidget {
   final Ar.Wallet wallet;
