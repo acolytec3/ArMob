@@ -19,7 +19,7 @@ class Transaction extends StatefulWidget {
 class TransactionState extends State<Transaction> {
   String _fileName;
   String _transactionCost = '0';
-  String _content;
+  List<int> _content;
   List _tags = [];
   String _transactionStatus;
   String _transactionResult;
@@ -29,9 +29,15 @@ class TransactionState extends State<Transaction> {
   void _getContent() async {
     final file = await FilePicker.getFile();
     _fileName = (file.path).split('/').last;
-    _content = file.readAsStringSync();
+    try {
+_content = utf8.encode(file.readAsStringSync());
+    } catch (__)
+{
+   _content = file.readAsBytesSync();
+} 
+    
     final contentType = mime(_fileName);
-    _transactionCost = await Ar.Transaction.transactionPrice(data: _content);
+    _transactionCost = await Ar.Transaction.transactionPrice(numBytes: _content.length);
     _tags = [
       {
         'name': 'Content-Type',
