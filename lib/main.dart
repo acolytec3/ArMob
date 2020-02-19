@@ -38,10 +38,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         home: Scaffold(
             appBar: AppBar(title: Text("Wallet"), actions: <Widget>[
               Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                Text(Provider.of<WalletData>(context, listen: true)
+                Padding(child: Text(Provider.of<WalletData>(context, listen: true)
                         .walletBalance
                         .toStringAsFixed(6) +
-                    " AR"),
+                    " AR"), padding: const EdgeInsets.all(10.0)),
               ])
             ]),
             body: SafeArea(
