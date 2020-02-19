@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:mime_type/mime_type.dart';
+import 'package:http/http.dart';
 
 class Transaction extends StatefulWidget {
   final Ar.Wallet wallet;
@@ -20,6 +21,8 @@ class TransactionState extends State<Transaction> {
   String _transactionCost = '0';
   String _content;
   List _tags = [];
+  String _transactionStatus;
+  String _transactionResult;
 
   static const platform = const MethodChannel('armob.dev/signer');
 
@@ -65,22 +68,37 @@ class TransactionState extends State<Transaction> {
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content, tags: _tags);
-      print(result);
+      print(result.body.toString());
+      print('Transaction status: ${result.statusCode}');
+      try {
+        _transactionStatus = result.statusCode.toString();
+      } catch (__) {
+        _transactionStatus = '500';
+      }
+      if (_transactionStatus == '200') {
+        _transactionResult = 'Transaction submitted!';
+      } else {
+        _transactionResult = 'Transaction could not be submitted.';
+      }
+      setState(() {});
     } on PlatformException catch (e) {
       print('Platform error occurred: $e');
     }
+    await Future.delayed(const Duration(seconds: 5));
+    Navigator.pop(context);
   }
+
   Widget tagTile(tag) {
-      return ListTile(
-        title: Text('${tag['name']}: ${tag['value']}'),
-        );
+    return ListTile(
+      title: Text('${tag['name']}: ${tag['value']}'),
+    );
   }
 
   List<Widget> tagList() {
     var tagList = <Widget>[];
-      for (var tag in _tags) {
-        tagList.add(tagTile(tag));
-      }
+    for (var tag in _tags) {
+      tagList.add(tagTile(tag));
+    }
     return tagList;
   }
 
@@ -88,34 +106,50 @@ class TransactionState extends State<Transaction> {
   Widget build(context) {
     return Scaffold(
       appBar: AppBar(title: Text('Transaction Form')),
-      body: Column(children: <Widget>[
-        Row(children: <Widget>[
-          Padding(child: Text('Transaction Cost'),padding: const EdgeInsets.all(20.0)),
-          Padding(child: Text((Ar.winstonToAr(_transactionCost)).toString()),padding: const EdgeInsets.all(20.0))
-        ]),
-        Text('Transaction Tags', style: TextStyle(fontWeight: FontWeight.bold)),
-        Expanded(
-            child: (_content != null)
-                ? ListView(children: tagList())
-                : Text('No content yet')),
-        ButtonBar(alignment: MainAxisAlignment.spaceAround, children: <Widget>[
-          Column(children: <Widget>[
-            IconButton(
-                icon: Icon(Icons.file_upload), onPressed: () => _getContent()),
-            Text('Pick Content')
-          ]),
-          Column(
-            children: <Widget>[
-              IconButton(
-                icon: Icon(Icons.send),
-                onPressed:
-                    (_fileName != null) ? () => _submitTransaction() : null,
-              ),
-              Text('Submit Transaction')
-            ],
-          )
-        ])
-      ]),
+      body: (_transactionStatus == null)
+          ? Column(children: <Widget>[
+              Row(children: <Widget>[
+                Padding(
+                    child: Text('Transaction Cost'),
+                    padding: const EdgeInsets.all(20.0)),
+                Padding(
+                    child: Text((Ar.winstonToAr(_transactionCost)).toString()),
+                    padding: const EdgeInsets.all(20.0))
+              ]),
+              Text('Transaction Tags',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(
+                  child: (_content != null)
+                      ? ListView(children: tagList())
+                      : Text('No content yet')),
+              ButtonBar(
+                  alignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    Column(children: <Widget>[
+                      IconButton(
+                          icon: Icon(Icons.file_upload),
+                          onPressed: () => _getContent()),
+                      Text('Pick Content')
+                    ]),
+                    Column(
+                      children: <Widget>[
+                        IconButton(
+                          icon: Icon(Icons.send),
+                          onPressed: (_fileName != null)
+                              ? () => _submitTransaction()
+                              : null,
+                        ),
+                        Text('Submit Transaction')
+                      ],
+                    )
+                  ])
+            ])
+          : Center(
+              child: Padding(
+                  child: Text(_transactionResult,
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.all(20.0)),
+            ),
     );
   }
 }
