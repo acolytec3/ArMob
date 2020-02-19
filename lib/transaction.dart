@@ -90,7 +90,7 @@ _content = utf8.encode(file.readAsStringSync());
     } on PlatformException catch (e) {
       print('Platform error occurred: $e');
     }
-    await Future.delayed(const Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 3));
     Navigator.pop(context);
   }
 
