@@ -89,6 +89,8 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
+    final txHistoryString = storage.read(key:'txHistory');
+    //TODO: read tx history from storage instead of pinging remote node
     try {
       List allToTxns = await _myWallet.allTransactionsToAddress();
       List allFromTxns = await _myWallet.allTransactionsFromAddress();
@@ -104,10 +106,10 @@ class WalletState extends State<Wallet> {
         _allTx[i] = txnDetail;
         setState(() {});
       }
+      storage.write(key: 'txHistory',value: _allTx.toString());
     } catch (__) {
       print("Error loading tx history: $__");
     }
-    storage.write(key: 'txHistory',value: _allTx.toString());
   }
 
   Widget dataTransactionItem(transaction) {
