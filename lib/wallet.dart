@@ -7,6 +7,7 @@ import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:arweave/transaction.dart';
+import 'package:arweave/transactionDetail.dart';
 
 class Wallet extends StatefulWidget {
   final Function(int index, String url) notifyParent;
@@ -145,14 +146,20 @@ class WalletState extends State<Wallet> {
   List<Widget> buildTxHistory() {
     var txnList = <Widget>[];
     try {
-      for (var txn in _allTx) {
-        if (txn.containsKey('reward')) {
+      for (var x = 0; x < _allTx.length; x++) {
+        if (_allTx[x].containsKey('reward')) {
           txnList.add(ListTile(
-              title: Text(txn['id']), subtitle: Text('Transaction Fee: ${Ar.winstonToAr(txn['reward']).toString()}')));
+              title: Text(_allTx[x]['id']), subtitle: Text('Transaction Fee: ${Ar.winstonToAr(_allTx[x]['reward']).toString()}'),
+              onTap: () {
+                              Route route = MaterialPageRoute(
+                                  builder: (context) =>
+                                      TransactionDetail(txn: _allTx[x]));
+                              Navigator.push(context, route);
+                            }));
         } else {
-          txnList.add(ListTile(title: Text(txn['id'])));
+          txnList.add(ListTile(title: Text(_allTx[x]['id'])));
         }
-      }
+      };
     } catch (__) {
       print('Error retrieving transactions: $__');
       txnList.add(Text('No transactions retrieved'));
