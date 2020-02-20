@@ -21,7 +21,9 @@ class WalletState extends State<Wallet> {
   //Wallet details
   Ar.Wallet _myWallet;
   var _balance;
-  List _txHistory;
+  List _dataTxHistory;
+  List _allTx;
+  bool firstLoad = false;
 
   //App components
   final flutterWebViewPlugin = FlutterWebviewPlugin();
@@ -48,22 +50,24 @@ class WalletState extends State<Wallet> {
     loading = false;
   }
 
-  void _openWallet() async {
-    final _fileName = await FilePicker.getFile();
-    final walletString = _fileName.readAsStringSync();
-
-    await storage.write(key: "walletString", value: walletString);
-
+  void _openWallet(context) async {
+    var _fileName;
+    var _walletString;
     try {
-      _myWallet = Ar.Wallet(jsonWebKey: walletString);
+      _fileName = await FilePicker.getFile();
+      _walletString = _fileName.readAsStringSync();
+      _myWallet = Ar.Wallet(jsonWebKey: _walletString);
     } catch (__) {
       print("Invalid Wallet File");
+      return;
     }
 
+    await storage.write(key: "walletString", value: _walletString);
     _balance = await _myWallet.balance();
-    _loadTxHistory();
+    _loadDataTxs();
+    _loadAllTxns();
     Provider.of<WalletData>(context, listen: false)
-        .updateWallet(walletString, _balance);
+        .updateWallet(_walletString, _balance);
     setState(() {});
   }
 
@@ -71,22 +75,33 @@ class WalletState extends State<Wallet> {
     await storage.deleteAll();
     Provider.of<WalletData>(context, listen: false).updateWallet(null, 0);
     _balance = 0;
-    _txHistory = null;
+    _dataTxHistory = null;
     _myWallet = null;
     setState(() {});
   }
 
-  void _loadTxHistory() async {
+  void _loadDataTxs() async {
     try {
-      final txHistory = await _myWallet.dataTransactionHistory();
-      _txHistory = txHistory;
+      final dataTxHistory = await _myWallet.dataTransactionHistory();
+      _dataTxHistory = dataTxHistory;
       setState(() {});
+    } catch (__) {
+      print('Error loading data tx history: $__');
+    }
+  }
+
+  void _loadAllTxns() async {
+    try {
+      final allToTxns = await _myWallet.allTransactionsToAddress();
+      final allFromTxns = await _myWallet.allTransactionsFromAddress();
+      _allTx.addAll(allToTxns);
+      _allTx.addAll(allFromTxns);
     } catch (__) {
       print("Error loading tx history: $__");
     }
   }
 
-  Widget transactionItem(transaction) {
+  Widget dataTransactionItem(transaction) {
     var contentType = {};
     try {
       contentType = transaction['tags'].singleWhere(
@@ -103,11 +118,11 @@ class WalletState extends State<Wallet> {
         });
   }
 
-  List<Widget> buildTxHistory() {
+  List<Widget> buildDataTxHistory() {
     var txnList = <Widget>[];
     try {
-      for (var txn in _txHistory) {
-        txnList.add(transactionItem(txn));
+      for (var txn in _dataTxHistory) {
+        txnList.add(dataTransactionItem(txn));
       }
     } catch (__) {
       print('Error retrieving transactions: $__');
@@ -116,8 +131,52 @@ class WalletState extends State<Wallet> {
     return txnList;
   }
 
+  List<Widget> buildTxHistory() {
+    var txnList = <Widget>[];
+    try {
+      for (var txn in _allTx) {
+        txnList.add(ListTile(title: txn));
+      }
+    } catch (__) {
+      print('Error retrieving transactions: $__');
+      txnList.add(Text('No transactions retrieved'));
+    }
+    return txnList;
+  }
+
+  void _showDialog(context) {
+    if (firstLoad == false) {
+      firstLoad = true;
+      setState(() {});
+      if (_myWallet == null) {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return SimpleDialog(
+                children: <Widget>[
+                  Column(
+                    children: <Widget>[
+                      Text('First time here?',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                          icon: Icon(Icons.attach_money),
+                          onPressed: () {
+                            _openWallet(context);
+                            Navigator.pop(context, true);
+                          }),
+                      Text('Open Wallet')
+                    ],
+                  )
+                ],
+              );
+            });
+      }
+    }
+  }
+
   @override
   Widget build(context) {
+    Future.delayed(Duration.zero, () => _showDialog(context));
     return DefaultTabController(
         length: 2,
         child: Scaffold(
@@ -127,13 +186,14 @@ class WalletState extends State<Wallet> {
               Tab(text: 'Data Transactions', icon: Icon(Icons.library_books)),
             ])),
             body: TabBarView(children: [
-              Center(
-                child: Text('All Transactions -- coming soon!'),
-              ),
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
-                  : ListView(children: buildTxHistory())
+                  : ListView(children: buildTxHistory()),
+              (Provider.of<WalletData>(context, listen: true).walletString ==
+                      null)
+                  ? (Center(child: Text('Open wallet to see transactions')))
+                  : ListView(children: buildDataTxHistory())
             ]),
             floatingActionButton: SpeedDial(
                 animatedIcon: AnimatedIcons.view_list,
@@ -157,7 +217,7 @@ class WalletState extends State<Wallet> {
                         (SpeedDialChild(
                             child: Icon(Icons.attach_money),
                             label: "Open Wallet",
-                            onTap: () => _openWallet())),
+                            onTap: () => _openWallet(context))),
                       ])));
   }
 }
