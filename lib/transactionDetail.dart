@@ -7,6 +7,12 @@ class TransactionDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context){
     return Scaffold(appBar: AppBar(title: Text('Transaction Detail',),),
-    body: Text(txn.toString()));
+    body: Column(
+      children: <Widget>[
+        Text("Owner ${txn['owner']}"),
+        Text("Transaction Fee ${txn['reward']}"),
+        Text("Tags ${txn['tags'].toString()}")
+        //TODO Add webview link to viewblock tx details
+      ]));
   }
 }

@@ -159,7 +159,7 @@ class WalletState extends State<Wallet> {
         } else {
           txnList.add(ListTile(title: Text(_allTx[x]['id'])));
         }
-      };
+      }
     } catch (__) {
       print('Error retrieving transactions: $__');
       txnList.add(Text('No transactions retrieved'));
