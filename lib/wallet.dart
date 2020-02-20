@@ -22,7 +22,7 @@ class WalletState extends State<Wallet> {
   Ar.Wallet _myWallet;
   var _balance;
   List _dataTxHistory;
-  List _allTx;
+  List<dynamic> _allTx = [];
   bool firstLoad = false;
 
   //App components
@@ -57,18 +57,16 @@ class WalletState extends State<Wallet> {
       _fileName = await FilePicker.getFile();
       _walletString = _fileName.readAsStringSync();
       _myWallet = Ar.Wallet(jsonWebKey: _walletString);
+      await storage.write(key: "walletString", value: _walletString);
+      _balance = await _myWallet.balance();
+      _loadDataTxs();
+      _loadAllTxns();
+      Provider.of<WalletData>(context, listen: false)
+          .updateWallet(_walletString, _balance);
+      setState(() {});
     } catch (__) {
       print("Invalid Wallet File");
-      return;
     }
-
-    await storage.write(key: "walletString", value: _walletString);
-    _balance = await _myWallet.balance();
-    _loadDataTxs();
-    _loadAllTxns();
-    Provider.of<WalletData>(context, listen: false)
-        .updateWallet(_walletString, _balance);
-    setState(() {});
   }
 
   void _removeWallet() async {
@@ -92,13 +90,24 @@ class WalletState extends State<Wallet> {
 
   void _loadAllTxns() async {
     try {
-      final allToTxns = await _myWallet.allTransactionsToAddress();
-      final allFromTxns = await _myWallet.allTransactionsFromAddress();
-      _allTx.addAll(allToTxns);
+      List allToTxns = await _myWallet.allTransactionsToAddress();
+      List allFromTxns = await _myWallet.allTransactionsFromAddress();
+      _allTx = allToTxns;
       _allTx.addAll(allFromTxns);
+      for (var i = 0; i < _allTx.length; i++) {
+        _allTx[i] = {'id': _allTx[i]};
+      }
+      setState(() {});
+      for (var i = 0; i < _allTx.length; i++) {
+        final txnDetail = await Ar.Transaction.getTransaction(_allTx[i]['id']);
+        print(txnDetail);
+        _allTx[i] = txnDetail;
+        setState(() {});
+      }
     } catch (__) {
       print("Error loading tx history: $__");
     }
+    storage.write(key: 'txHistory',value: _allTx.toString());
   }
 
   Widget dataTransactionItem(transaction) {
@@ -135,7 +144,12 @@ class WalletState extends State<Wallet> {
     var txnList = <Widget>[];
     try {
       for (var txn in _allTx) {
-        txnList.add(ListTile(title: txn));
+        if (txn.containsKey('reward')) {
+          txnList.add(ListTile(
+              title: Text(txn['id']), subtitle: Text('Transaction Fee: ${Ar.winstonToAr(txn['reward']).toString()}')));
+        } else {
+          txnList.add(ListTile(title: Text(txn['id'])));
+        }
       }
     } catch (__) {
       print('Error retrieving transactions: $__');
