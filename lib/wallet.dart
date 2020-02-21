@@ -7,7 +7,8 @@ import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:arweave/transaction.dart';
-import 'package:arweave/transactionDetail.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class Wallet extends StatefulWidget {
   final Function(int index, String url) notifyParent;
@@ -90,7 +91,7 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
-    final txHistoryString = storage.read(key:'txHistory');
+    final txHistoryString = storage.read(key: 'txHistory');
     //TODO: read tx history from storage instead of pinging remote node
     try {
       List allToTxns = await _myWallet.allTransactionsToAddress();
@@ -107,7 +108,7 @@ class WalletState extends State<Wallet> {
         _allTx[i] = txnDetail;
         setState(() {});
       }
-      storage.write(key: 'txHistory',value: _allTx.toString());
+      storage.write(key: 'txHistory', value: _allTx.toString());
     } catch (__) {
       print("Error loading tx history: $__");
     }
@@ -148,16 +149,58 @@ class WalletState extends State<Wallet> {
     try {
       for (var x = 0; x < _allTx.length; x++) {
         if (_allTx[x].containsKey('reward')) {
-          txnList.add(ListTile(
-              title: Text(_allTx[x]['id']), subtitle: Text('Transaction Fee: ${Ar.winstonToAr(_allTx[x]['reward']).toString()}'),
-              onTap: () {
-                              Route route = MaterialPageRoute(
-                                  builder: (context) =>
-                                      TransactionDetail(txn: _allTx[x]));
-                              Navigator.push(context, route);
-                            }));
+          final owner = base64Url.encode(sha256
+              .convert(base64Url.decode(_allTx[x]['owner'] +
+                  List.filled((4 - _allTx[x]['owner'].length % 4) % 4, '=')
+                      .join()))
+              .bytes);
+          final target = base64Url.encode(sha256
+              .convert(base64Url.decode(_allTx[x]['target'] +
+                  List.filled((4 - _allTx[x]['target'].length % 4) % 4, '=')
+                      .join()))
+              .bytes);
+          /*TODO Fix tags decoding 
+          List tags;
+          for (final tag in _allTx[x]['tags']) {
+            (tags != null)
+                ? tags.add({
+                    'name': utf8.decode(base64Url.decode(tag['name'])),
+                    'value': utf8.decode(base64Url.decode(tag['value']))
+                  })
+                : tags = [{
+                    'name': utf8.decode(base64Url.decode(tag['name'])),
+                    'value': utf8.decode(base64Url.decode(tag['value']))
+                  }];
+          }*/
+          txnList.add(ExpansionTile(
+              title: ListTile(
+                  title: Text(_allTx[x]['id']),
+                  onLongPress: () {
+                    widget.notifyParent(1,
+                        "https://viewblock.io/arweave/tx/${_allTx[x]['id']}");
+                  }),
+              subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Amount ${Ar.winstonToAr(_allTx[x]['quantity'])} AR'),
+                    Text(
+                        'Fee: ${Ar.winstonToAr(_allTx[x]['reward']).toString()} AR'),
+                  ]),
+              initiallyExpanded: false,
+              children: <Widget>[
+                Column(children: <Widget>[
+                  Text("From: $owner"),
+                  Text('To: $target'),
+                  //Text("Tags: ${_allTx[x]['tags'].toString()}"),
+                ], crossAxisAlignment: CrossAxisAlignment.start)
+              ]));
         } else {
-          txnList.add(ListTile(title: Text(_allTx[x]['id'])));
+          txnList.add(ListTile(
+              title: Text(_allTx[x]['id']),
+              onLongPress: () {
+                widget.notifyParent(
+                    1, "https://viewblock.io/arweave/tx/${_allTx[x]['id']}");
+              }));
         }
       }
     } catch (__) {
