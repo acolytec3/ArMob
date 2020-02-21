@@ -25,7 +25,6 @@ class WalletState extends State<Wallet> {
   var _balance;
   List _dataTxHistory;
   List<dynamic> _allTx = [];
-  bool firstLoad = false;
 
   //App components
   final flutterWebViewPlugin = FlutterWebviewPlugin();
@@ -210,39 +209,8 @@ class WalletState extends State<Wallet> {
     return txnList;
   }
 
-  void _showDialog(context) {
-    if (firstLoad == false) {
-      firstLoad = true;
-      setState(() {});
-      if (_myWallet == null) {
-        showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return SimpleDialog(
-                children: <Widget>[
-                  Column(
-                    children: <Widget>[
-                      Text('First time here?',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      IconButton(
-                          icon: Icon(Icons.attach_money),
-                          onPressed: () {
-                            _openWallet(context);
-                            Navigator.pop(context, true);
-                          }),
-                      Text('Open Wallet')
-                    ],
-                  )
-                ],
-              );
-            });
-      }
-    }
-  }
-
   @override
   Widget build(context) {
-    Future.delayed(Duration.zero, () => _showDialog(context));
     return DefaultTabController(
         length: 2,
         child: Scaffold(
@@ -261,10 +229,10 @@ class WalletState extends State<Wallet> {
                   ? (Center(child: Text('Open wallet to see transactions')))
                   : ListView(children: buildDataTxHistory())
             ]),
-            floatingActionButton: SpeedDial(
+            floatingActionButton: (_myWallet != null) ? SpeedDial(
                 animatedIcon: AnimatedIcons.view_list,
-                children: (_myWallet != null)
-                    ? [
+                children: 
+                   [
                         (SpeedDialChild(
                             child: Icon(Icons.attach_money),
                             label: "Close Wallet",
@@ -279,11 +247,11 @@ class WalletState extends State<Wallet> {
                               Navigator.push(context, route);
                             })
                       ]
-                    : [
-                        (SpeedDialChild(
-                            child: Icon(Icons.attach_money),
-                            label: "Open Wallet",
-                            onTap: () => _openWallet(context))),
-                      ])));
+                    
+                      ): 
+                        (FloatingActionButton.extended(
+                            icon: Icon(Icons.attach_money),
+                            label: Text('Login'),
+                            onPressed: () => _openWallet(context)))));
   }
 }
