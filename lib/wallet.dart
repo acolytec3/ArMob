@@ -148,16 +148,8 @@ class WalletState extends State<Wallet> {
     try {
       for (var x = 0; x < _allTx.length; x++) {
         if (_allTx[x].containsKey('reward')) {
-          final owner = base64Url.encode(sha256
-              .convert(base64Url.decode(_allTx[x]['owner'] +
-                  List.filled((4 - _allTx[x]['owner'].length % 4) % 4, '=')
-                      .join()))
-              .bytes);
-          final target = base64Url.encode(sha256
-              .convert(base64Url.decode(_allTx[x]['target'] +
-                  List.filled((4 - _allTx[x]['target'].length % 4) % 4, '=')
-                      .join()))
-              .bytes);
+          final owner = Ar.ownerToAddress(_allTx[x]['owner']);
+          final target = Ar.ownerToAddress(_allTx[x]['target']);
           /*TODO Fix tags decoding 
           List tags;
           for (final tag in _allTx[x]['tags']) {
