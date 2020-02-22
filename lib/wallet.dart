@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:arweave/transaction.dart';
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
 
 class Wallet extends StatefulWidget {
   final Function(int index, String url) notifyParent;
@@ -90,7 +89,7 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
-    final txHistoryString = storage.read(key: 'txHistory');
+    final txHistoryString = jsonDecode(await storage.read(key: 'txHistory'));
     //TODO: read tx history from storage instead of pinging remote node
     try {
       List allToTxns = await _myWallet.allTransactionsToAddress();
@@ -107,7 +106,7 @@ class WalletState extends State<Wallet> {
         _allTx[i] = txnDetail;
         setState(() {});
       }
-      storage.write(key: 'txHistory', value: _allTx.toString());
+      storage.write(key: 'txHistory', value: jsonEncode(_allTx));
     } catch (__) {
       print("Error loading tx history: $__");
     }
@@ -148,21 +147,16 @@ class WalletState extends State<Wallet> {
     try {
       for (var x = 0; x < _allTx.length; x++) {
         if (_allTx[x].containsKey('reward')) {
-          final owner = Ar.ownerToAddress(_allTx[x]['owner']);
-          final target = Ar.ownerToAddress(_allTx[x]['target']);
-          /*TODO Fix tags decoding 
-          List tags;
+          List<Widget> txn = [Text('Tags')];
+    
           for (final tag in _allTx[x]['tags']) {
-            (tags != null)
-                ? tags.add({
-                    'name': utf8.decode(base64Url.decode(tag['name'])),
-                    'value': utf8.decode(base64Url.decode(tag['value']))
-                  })
-                : tags = [{
-                    'name': utf8.decode(base64Url.decode(tag['name'])),
-                    'value': utf8.decode(base64Url.decode(tag['value']))
-                  }];
-          }*/
+            print(tag);
+            txn.add(Row(children: <Widget>[
+              Text('Name: ${tag['name']}'),
+              Text('Name: ${tag['value']}')
+            ],));
+          }
+
           txnList.add(ExpansionTile(
               title: ListTile(
                   title: Text(_allTx[x]['id']),
@@ -179,11 +173,8 @@ class WalletState extends State<Wallet> {
                   ]),
               initiallyExpanded: false,
               children: <Widget>[
-                Column(children: <Widget>[
-                  Text("From: $owner"),
-                  Text('To: $target'),
-                  //Text("Tags: ${_allTx[x]['tags'].toString()}"),
-                ], crossAxisAlignment: CrossAxisAlignment.start)
+                Column(children: txn
+                , crossAxisAlignment: CrossAxisAlignment.start)
               ]));
         } else {
           txnList.add(ListTile(
