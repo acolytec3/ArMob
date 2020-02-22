@@ -46,7 +46,10 @@ class WalletState extends State<Wallet> {
       _balance = await _myWallet.balance();
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_wallet, _balance);
+      final txns = await storage.read(key: 'txHistory');
+      //_allTx = json.decode(txns);        
     }
+
     loading = false;
   }
 
@@ -75,6 +78,7 @@ class WalletState extends State<Wallet> {
     _balance = 0;
     _dataTxHistory = null;
     _myWallet = null;
+    _allTx = null;
     setState(() {});
   }
 
@@ -89,26 +93,28 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
-    final txHistoryString = jsonDecode(await storage.read(key: 'txHistory'));
     //TODO: read tx history from storage instead of pinging remote node
-    try {
-      List allToTxns = await _myWallet.allTransactionsToAddress();
-      List allFromTxns = await _myWallet.allTransactionsFromAddress();
-      _allTx = allToTxns;
-      _allTx.addAll(allFromTxns);
-      for (var i = 0; i < _allTx.length; i++) {
-        _allTx[i] = {'id': _allTx[i]};
-      }
-      setState(() {});
-      for (var i = 0; i < _allTx.length; i++) {
-        final txnDetail = await Ar.Transaction.getTransaction(_allTx[i]['id']);
-        print(txnDetail);
-        _allTx[i] = txnDetail;
+    if (_allTx == null) {
+      try {
+        List allToTxns = await _myWallet.allTransactionsToAddress();
+        List allFromTxns = await _myWallet.allTransactionsFromAddress();
+        _allTx = allToTxns;
+        _allTx.addAll(allFromTxns);
+        for (var i = 0; i < _allTx.length; i++) {
+          _allTx[i] = {'id': _allTx[i]};
+        }
         setState(() {});
+        for (var i = 0; i < _allTx.length; i++) {
+          final txnDetail =
+              await Ar.Transaction.getTransaction(_allTx[i]['id']);
+          _allTx[i] = txnDetail;
+          setState(() {});
+        }
+        storage.write(key: 'txHistory', value: jsonEncode(_allTx).toString());
+        print('Wrote all txns to storage');
+      } catch (__) {
+        print("Error loading tx history: $__");
       }
-      storage.write(key: 'txHistory', value: jsonEncode(_allTx));
-    } catch (__) {
-      print("Error loading tx history: $__");
     }
   }
 
@@ -148,13 +154,15 @@ class WalletState extends State<Wallet> {
       for (var x = 0; x < _allTx.length; x++) {
         if (_allTx[x].containsKey('reward')) {
           List<Widget> txn = [Text('Tags')];
-    
+
           for (final tag in _allTx[x]['tags']) {
-            print(tag);
-            txn.add(Row(children: <Widget>[
-              Text('Name: ${tag['name']}'),
-              Text('Name: ${tag['value']}')
-            ],));
+
+            txn.add(Row(
+              children: <Widget>[
+                Text('Name: ${tag['name']}'),
+                Text('Name: ${tag['value']}')
+              ],
+            ));
           }
 
           txnList.add(ExpansionTile(
@@ -173,8 +181,8 @@ class WalletState extends State<Wallet> {
                   ]),
               initiallyExpanded: false,
               children: <Widget>[
-                Column(children: txn
-                , crossAxisAlignment: CrossAxisAlignment.start)
+                Column(
+                    children: txn, crossAxisAlignment: CrossAxisAlignment.start)
               ]));
         } else {
           txnList.add(ListTile(
@@ -212,29 +220,25 @@ class WalletState extends State<Wallet> {
                   ? (Center(child: Text('Open wallet to see transactions')))
                   : ListView(children: buildDataTxHistory())
             ]),
-            floatingActionButton: (_myWallet != null) ? SpeedDial(
-                animatedIcon: AnimatedIcons.view_list,
-                children: 
-                   [
-                        (SpeedDialChild(
-                            child: Icon(Icons.attach_money),
-                            label: "Close Wallet",
-                            onTap: () => _removeWallet())),
-                        SpeedDialChild(
-                            child: Icon(Icons.send),
-                            label: 'Archive File',
-                            onTap: () {
-                              Route route = MaterialPageRoute(
-                                  builder: (context) =>
-                                      Transaction(wallet: _myWallet));
-                              Navigator.push(context, route);
-                            })
-                      ]
-                    
-                      ): 
-                        (FloatingActionButton.extended(
-                            icon: Icon(Icons.attach_money),
-                            label: Text('Login'),
-                            onPressed: () => _openWallet(context)))));
+            floatingActionButton: (_myWallet != null)
+                ? SpeedDial(animatedIcon: AnimatedIcons.view_list, children: [
+                    (SpeedDialChild(
+                        child: Icon(Icons.attach_money),
+                        label: "Close Wallet",
+                        onTap: () => _removeWallet())),
+                    SpeedDialChild(
+                        child: Icon(Icons.send),
+                        label: 'Archive File',
+                        onTap: () {
+                          Route route = MaterialPageRoute(
+                              builder: (context) =>
+                                  Transaction(wallet: _myWallet));
+                          Navigator.push(context, route);
+                        })
+                  ])
+                : (FloatingActionButton.extended(
+                    icon: Icon(Icons.attach_money),
+                    label: Text('Login'),
+                    onPressed: () => _openWallet(context)))));
   }
 }
