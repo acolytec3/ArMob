@@ -8,13 +8,21 @@ import 'dart:async';
 
 var loginFunction;
 
+final Set<JavascriptChannel> jsChannels = [
+  JavascriptChannel(
+      name: 'Print',
+      onMessageReceived: (JavascriptMessage message) {
+        print(message.toString());
+      }),
+].toSet();
+
 //Future Javascript awesomeness
-final cache = 'cache = arweave.transactions.sign; confirm("Found signing function");';
-final signingFunction = 
-'''arweave.transactions.sign = function() {
+final cache =
+    'cache = arweave.transactions.sign; alert("ArMob will manage message signing in this Dapp");';
+final signingFunction = '''arweave.transactions.sign = async function() {
 if (confirm(`Transaction Fee \${arweave.ar.winstonToAr(arguments[0].reward)} AR. Do you want to sign this transaction?`)) {
-console.log(arweave.ar.winstonToAr(arguments[0].reward));
-//cache.apply(this, arguments);
+result = await cache.apply(this, arguments);
+return result;
 }
 else { alert('Transaction canceled')}}''';
 
@@ -72,7 +80,7 @@ class EnsNameState extends State<EnsName> {
   StreamSubscription<double> _onProgressChanged;
 
   StreamSubscription<WebViewStateChanged> _onStateChanged;
-  
+
   @override
   void initState() {
     super.initState();
@@ -85,20 +93,16 @@ class EnsNameState extends State<EnsName> {
         setState(() {
           _progress = progress;
         });
-        if (progress >= 99){
-
-        }
+        if (progress >= 99) {}
       }
     });
 
     _onStateChanged =
         flutterWebViewPlugin.onStateChanged.listen((WebViewStateChanged state) {
       if (state.type == WebViewState.finishLoad) {
-                  flutterWebViewPlugin.evalJavascript(cache);
-          flutterWebViewPlugin.evalJavascript(signingFunction);
+        flutterWebViewPlugin.evalJavascript(cache);
+        flutterWebViewPlugin.evalJavascript(signingFunction);
       }
-      
-        
     });
   }
 
@@ -133,13 +137,7 @@ class EnsNameState extends State<EnsName> {
               bottom: PreferredSize(
                   preferredSize: Size(double.infinity, 1.0),
                   child: (LinearProgressIndicator(value: _progress)))),
-          javascriptChannels: <JavascriptChannel>[
-            JavascriptChannel(
-                name: '_print',
-                onMessageReceived: (JavascriptMessage msg) {
-                  loginFunction = msg.message;
-                }),
-          ].toSet(),
+          javascriptChannels: jsChannels,
           url:
               "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
           bottomNavigationBar: ButtonBar(
@@ -159,11 +157,9 @@ class EnsNameState extends State<EnsName> {
                   onPressed: (_walletString != null)
                       ? () => flutterWebViewPlugin.evalJavascript('''
           var walletString = $mes;
-          console.log(walletString);
           queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
           re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
           loginFunctionName = (queries[0].text.match(re))[0];
-          window._print.postMessage(loginFunctionName);
           window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])''')
                       : null)
             ],
