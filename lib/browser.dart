@@ -8,6 +8,16 @@ import 'dart:async';
 
 var loginFunction;
 
+//Future Javascript awesomeness
+final cache = 'cache = arweave.transactions.sign; confirm("Found signing function");';
+final signingFunction = 
+'''arweave.transactions.sign = function() {
+if (confirm(`Transaction Fee \${arweave.ar.winstonToAr(arguments[0].reward)} AR. Do you want to sign this transaction?`)) {
+console.log(arweave.ar.winstonToAr(arguments[0].reward));
+//cache.apply(this, arguments);
+}
+else { alert('Transaction canceled')}}''';
+
 Future<bool> _exitApp(BuildContext context) async {
   final flutterWebViewPlugin = FlutterWebviewPlugin();
 
@@ -61,6 +71,8 @@ class EnsNameState extends State<EnsName> {
 
   StreamSubscription<double> _onProgressChanged;
 
+  StreamSubscription<WebViewStateChanged> _onStateChanged;
+  
   @override
   void initState() {
     super.initState();
@@ -73,7 +85,20 @@ class EnsNameState extends State<EnsName> {
         setState(() {
           _progress = progress;
         });
+        if (progress >= 99){
+
+        }
       }
+    });
+
+    _onStateChanged =
+        flutterWebViewPlugin.onStateChanged.listen((WebViewStateChanged state) {
+      if (state.type == WebViewState.finishLoad) {
+                  flutterWebViewPlugin.evalJavascript(cache);
+          flutterWebViewPlugin.evalJavascript(signingFunction);
+      }
+      
+        
     });
   }
 
