@@ -1,12 +1,9 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-class WalletData extends ChangeNotifier{
+class WalletData extends ChangeNotifier {
   String _walletString;
   double _currentBalance = 0;
-
-  int _currentIndex = 0;
 
   String get walletString => _walletString;
 
@@ -17,11 +14,4 @@ class WalletData extends ChangeNotifier{
     _currentBalance = balance;
     notifyListeners();
   }
-
-  void updateTabIndex(int index) {
-    _currentIndex = index;
-    notifyListeners();
-  }
-
 }
-
