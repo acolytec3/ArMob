@@ -21,8 +21,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   File wallet;
 
-  //TODO: Replace with globalkey to webviewcontroller
-  
   launchBrowser(int index, String url) {
     _currentIndex = index;
     setState(() {});

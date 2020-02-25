@@ -9,7 +9,6 @@ var loginFunction;
 
 final webviewKey = GlobalKey<WebViewContainerState>();
 
-
 final cache =
     'cache = arweave.transactions.sign; alert("ArMob will manage message signing in this Dapp");';
 final signingFunction = '''arweave.transactions.sign = async function() {
@@ -29,29 +28,37 @@ class WebViewContainer extends StatefulWidget {
 class WebViewContainerState extends State<WebViewContainer> {
   InAppWebViewController webViewController;
   double _progress = 0;
- @override
+  @override
   Widget build(BuildContext context) {
-    final _walletString =
-        Provider.of<WalletData>(context, listen: false).walletString;
-    return InAppWebView(
-                  initialUrl: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
-                  initialHeaders: {},
-                  initialOptions: InAppWebViewWidgetOptions(
-                  ),
-                  onWebViewCreated: (InAppWebViewController controller) {
-                    webViewController = controller;
-                  },
-                  onProgressChanged: (InAppWebViewController controller, int progress) {
-                    setState(() {
-                      _progress = progress / 100;
-                    });
-                  },
-                  onLoadStop: (InAppWebViewController controller, String status) {
-                            webViewController.evaluateJavascript(source: cache);
-                            webViewController.evaluateJavascript(source: signingFunction);
-                  });
+    return Column(children: <Widget>[
+      Container(
+          padding: EdgeInsets.all(2.0),
+          child: _progress < 100
+              ? LinearProgressIndicator(value: _progress)
+              : Container()),
+      Expanded(
+          child: InAppWebView(
+              initialUrl:
+                  "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
+              initialHeaders: {},
+              initialOptions: InAppWebViewWidgetOptions(),
+              onWebViewCreated: (InAppWebViewController controller) {
+                webViewController = controller;
+              },
+              onProgressChanged:
+                  (InAppWebViewController controller, int progress) {
+                setState(() {
+                  this._progress = progress / 100;
+                });
+              },
+              onLoadStop: (InAppWebViewController controller, String status) {
+                webViewController.evaluateJavascript(source: cache);
+                webViewController.evaluateJavascript(source: signingFunction);
+              }))
+    ]);
   }
 }
+
 class Browser extends StatefulWidget {
   const Browser({Key key}) : super(key: key);
   @override
@@ -60,9 +67,6 @@ class Browser extends StatefulWidget {
 
 class BrowserState extends State<Browser> {
   String name;
-  double _progress = 0;
-
-  //TODO - Make this a global key somehow
 
   void setUrl(String resolvedName) async {
     var trimmedName = resolvedName;
@@ -74,7 +78,8 @@ class BrowserState extends State<Browser> {
       }
     }
     if (trimmedName.contains('/')) {
-      webviewKey.currentState.webViewController.loadUrl(url: "https://" + trimmedName);
+      webviewKey.currentState.webViewController
+          .loadUrl(url: "https://" + trimmedName);
     } else {
       if (trimmedName.endsWith('.eth')) {
         try {
@@ -85,69 +90,59 @@ class BrowserState extends State<Browser> {
           print("Name could not be resolved");
         }
       } else {
-        webviewKey.currentState.webViewController.loadUrl(url: "https://" + trimmedName);
+        webviewKey.currentState.webViewController
+            .loadUrl(url: "https://" + trimmedName);
       }
     }
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     final _walletString =
         Provider.of<WalletData>(context, listen: false).walletString;
     final mes = jsonEncode(_walletString).toString();
     return Consumer<WalletData>(builder: (context, url, child) {
-        return Scaffold(
-          appBar: AppBar(
-              title: TextField(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Address',
-                  ),
-                  onSubmitted: (value) {
-                    setUrl(value);
-                  }),
-              backgroundColor: Color(0xFFFFFFFF),
-              bottom: PreferredSize(
-                  preferredSize: Size(double.infinity, 1.0),
-                  child: (LinearProgressIndicator(value: _progress)))),
-              body: Container(child: Column(children: <Widget>[
-                Container(
-                padding: EdgeInsets.all(10.0),
-                child: _progress < 1.0
-                    ? LinearProgressIndicator(value: _progress)
-                    : Container()),
-                Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(10.0),
-                decoration:
-                    BoxDecoration(border: Border.all(color: Colors.blueAccent)),
-                child: WebViewContainer(key: webviewKey)))
-              ],)),         
-          bottomNavigationBar: ButtonBar(
-            alignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  tooltip: "Back",
-                  onPressed: () => webviewKey.currentState.webViewController.goBack()),
-              IconButton(
-                  icon: Icon(Icons.replay),
-                  tooltip: "Reload",
-                  onPressed: () => webviewKey.currentState.webViewController.reload()),
-              IconButton(
-                  icon: Icon(Icons.lock_open),
-                  tooltip: "Unlock Wallet",
-                  onPressed: (_walletString != null)
-                     ? () => webviewKey.currentState.webViewController.evaluateJavascript(source: '''
+      return Scaffold(
+        appBar: AppBar(
+          title: TextField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Address',
+              ),
+              onSubmitted: (value) {
+                setUrl(value);
+              }),
+          backgroundColor: Color(0xFFFFFFFF),
+        ),
+        body: WebViewContainer(key: webviewKey),
+        bottomNavigationBar: ButtonBar(
+          alignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            IconButton(
+                icon: Icon(Icons.arrow_back),
+                tooltip: "Back",
+                onPressed: () =>
+                    webviewKey.currentState.webViewController.goBack()),
+            IconButton(
+                icon: Icon(Icons.replay),
+                tooltip: "Reload",
+                onPressed: () =>
+                    webviewKey.currentState.webViewController.reload()),
+            IconButton(
+                icon: Icon(Icons.lock_open),
+                tooltip: "Unlock Wallet",
+                onPressed: (_walletString != null)
+                    ? () => webviewKey.currentState.webViewController
+                        .evaluateJavascript(source: '''
           var walletString = $mes;
           queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
           re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
           loginFunctionName = (queries[0].text.match(re))[0];
           window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])''')
-                      : null)
-            ],
-          ),
-        );
-      });
+                    : null)
+          ],
+        ),
+      );
+    });
   }
 }
