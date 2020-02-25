@@ -160,6 +160,15 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_inappwebview:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "9c7ac0da8f01ceb40430da58397bdb31968ca5b1"
+      url: "https://github.com/pichillilorenzo/flutter_inappwebview.git"
+    source: git
+    version: "3.0.0"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -179,13 +188,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_webview_plugin:
-    dependency: "direct main"
-    description:
-      name: flutter_webview_plugin
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.3.10+1"
   front_end:
     dependency: transitive
     description:
@@ -298,6 +300,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.8"
+  mime:
+    dependency: transitive
+    description:
+      name: mime
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.9.6+3"
   mime_type:
     dependency: "direct main"
     description:
@@ -487,3 +496,4 @@ packages:
     version: "2.2.0"
 sdks:
   dart: ">=2.7.0 <3.0.0"
+  flutter: ">=1.10.0 <2.0.0"

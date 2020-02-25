@@ -1,22 +1,14 @@
 import 'dart:convert';
 import 'package:arweave/ens.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'package:arweave/appState.dart';
-import 'dart:async';
 
 var loginFunction;
 
-final Set<JavascriptChannel> jsChannels = [
-  JavascriptChannel(
-      name: 'Print',
-      onMessageReceived: (JavascriptMessage message) {
-        print(message.toString());
-      }),
-].toSet();
+final webviewKey = GlobalKey<WebViewContainerState>();
 
-//Future Javascript awesomeness
 final cache =
     'cache = arweave.transactions.sign; alert("ArMob will manage message signing in this Dapp");';
 final signingFunction = '''arweave.transactions.sign = async function() {
@@ -26,30 +18,55 @@ return result;
 }
 else { alert('Transaction canceled')}}''';
 
-Future<bool> _exitApp(BuildContext context) async {
-  final flutterWebViewPlugin = FlutterWebviewPlugin();
+class WebViewContainer extends StatefulWidget {
+  WebViewContainer({Key key}) : super(key: key);
 
-  if (await flutterWebViewPlugin.canGoBack()) {
-    flutterWebViewPlugin.goBack();
-    return Future.value(false);
-  } else {
-    Scaffold.of(context)
-        .showSnackBar(const SnackBar(content: Text("No page to go back to")));
-    return Future.value(false);
+  @override
+  WebViewContainerState createState() => WebViewContainerState();
+}
+
+class WebViewContainerState extends State<WebViewContainer> {
+  InAppWebViewController webViewController;
+  double _progress = 0;
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: <Widget>[
+      Container(
+          padding: EdgeInsets.all(2.0),
+          child: _progress < 100
+              ? LinearProgressIndicator(value: _progress)
+              : Container()),
+      Expanded(
+          child: InAppWebView(
+              initialUrl:
+                  "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
+              initialHeaders: {},
+              initialOptions: InAppWebViewWidgetOptions(),
+              onWebViewCreated: (InAppWebViewController controller) {
+                webViewController = controller;
+              },
+              onProgressChanged:
+                  (InAppWebViewController controller, int progress) {
+                setState(() {
+                  this._progress = progress / 100;
+                });
+              },
+              onLoadStop: (InAppWebViewController controller, String status) {
+                webViewController.evaluateJavascript(source: cache);
+                webViewController.evaluateJavascript(source: signingFunction);
+              }))
+    ]);
   }
 }
 
-class EnsName extends StatefulWidget {
-  const EnsName({Key key}) : super(key: key);
+class Browser extends StatefulWidget {
+  const Browser({Key key}) : super(key: key);
   @override
-  EnsNameState createState() => EnsNameState();
+  BrowserState createState() => BrowserState();
 }
 
-class EnsNameState extends State<EnsName> {
+class BrowserState extends State<Browser> {
   String name;
-  double _progress;
-
-  final flutterWebViewPlugin = FlutterWebviewPlugin();
 
   void setUrl(String resolvedName) async {
     var trimmedName = resolvedName;
@@ -61,58 +78,22 @@ class EnsNameState extends State<EnsName> {
       }
     }
     if (trimmedName.contains('/')) {
-      flutterWebViewPlugin.reloadUrl("https://" + trimmedName);
+      webviewKey.currentState.webViewController
+          .loadUrl(url: "https://" + trimmedName);
     } else {
       if (trimmedName.endsWith('.eth')) {
         try {
           final arTx = await resolve(nameHash(name));
           final url = 'https://arweave.net/' + arTx.toString();
-          flutterWebViewPlugin.reloadUrl(url);
+          webviewKey.currentState.webViewController.loadUrl(url: url);
         } catch (__) {
           print("Name could not be resolved");
         }
       } else {
-        flutterWebViewPlugin.reloadUrl("https://" + trimmedName);
+        webviewKey.currentState.webViewController
+            .loadUrl(url: "https://" + trimmedName);
       }
     }
-  }
-
-  StreamSubscription<double> _onProgressChanged;
-
-  StreamSubscription<WebViewStateChanged> _onStateChanged;
-
-  @override
-  void initState() {
-    super.initState();
-
-    flutterWebViewPlugin.close();
-
-    _onProgressChanged =
-        flutterWebViewPlugin.onProgressChanged.listen((double progress) {
-      if (mounted) {
-        setState(() {
-          _progress = progress;
-        });
-        if (progress >= 99) {}
-      }
-    });
-
-    _onStateChanged =
-        flutterWebViewPlugin.onStateChanged.listen((WebViewStateChanged state) {
-      if (state.type == WebViewState.finishLoad) {
-        flutterWebViewPlugin.evalJavascript(cache);
-        flutterWebViewPlugin.evalJavascript(signingFunction);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _onProgressChanged.cancel();
-
-    flutterWebViewPlugin.dispose();
-
-    super.dispose();
   }
 
   @override
@@ -120,52 +101,48 @@ class EnsNameState extends State<EnsName> {
     final _walletString =
         Provider.of<WalletData>(context, listen: false).walletString;
     final mes = jsonEncode(_walletString).toString();
-    return WillPopScope(
-      onWillPop: () => _exitApp(context),
-      child: Consumer<WalletData>(builder: (context, url, child) {
-        return WebviewScaffold(
-          appBar: AppBar(
-              title: TextField(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Address',
-                  ),
-                  onSubmitted: (value) {
-                    setUrl(value);
-                  }),
-              backgroundColor: Color(0xFFFFFFFF),
-              bottom: PreferredSize(
-                  preferredSize: Size(double.infinity, 1.0),
-                  child: (LinearProgressIndicator(value: _progress)))),
-          javascriptChannels: jsChannels,
-          url:
-              "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
-          bottomNavigationBar: ButtonBar(
-            alignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  tooltip: "Back",
-                  onPressed: () => flutterWebViewPlugin.goBack()),
-              IconButton(
-                  icon: Icon(Icons.replay),
-                  tooltip: "Reload",
-                  onPressed: () => flutterWebViewPlugin.reload()),
-              IconButton(
-                  icon: Icon(Icons.lock_open),
-                  tooltip: "Unlock Wallet",
-                  onPressed: (_walletString != null)
-                      ? () => flutterWebViewPlugin.evalJavascript('''
+    return Consumer<WalletData>(builder: (context, url, child) {
+      return Scaffold(
+        appBar: AppBar(
+          title: TextField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Address',
+              ),
+              onSubmitted: (value) {
+                setUrl(value);
+              }),
+          backgroundColor: Color(0xFFFFFFFF),
+        ),
+        body: WebViewContainer(key: webviewKey),
+        bottomNavigationBar: ButtonBar(
+          alignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            IconButton(
+                icon: Icon(Icons.arrow_back),
+                tooltip: "Back",
+                onPressed: () =>
+                    webviewKey.currentState.webViewController.goBack()),
+            IconButton(
+                icon: Icon(Icons.replay),
+                tooltip: "Reload",
+                onPressed: () =>
+                    webviewKey.currentState.webViewController.reload()),
+            IconButton(
+                icon: Icon(Icons.lock_open),
+                tooltip: "Unlock Wallet",
+                onPressed: (_walletString != null)
+                    ? () => webviewKey.currentState.webViewController
+                        .evaluateJavascript(source: '''
           var walletString = $mes;
           queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
           re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
           loginFunctionName = (queries[0].text.match(re))[0];
           window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])''')
-                      : null)
-            ],
-          ),
-        );
-      }),
-    );
+                    : null)
+          ],
+        ),
+      );
+    });
   }
 }

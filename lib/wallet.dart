@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:libarweave/libarweave.dart' as Ar;
 import 'package:flutter/material.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:arweave/transaction.dart';
@@ -26,7 +25,6 @@ class WalletState extends State<Wallet> {
   List<dynamic> _allTx = [];
 
   //App components
-  final flutterWebViewPlugin = FlutterWebviewPlugin();
   final storage = FlutterSecureStorage();
   var loading = true;
 
