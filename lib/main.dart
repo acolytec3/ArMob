@@ -2,7 +2,6 @@ import 'package:arweave/browser.dart';
 import 'package:flutter/material.dart';
 import 'package:arweave/wallet.dart';
 import 'package:arweave/appState.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 
@@ -22,13 +21,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   File wallet;
 
-  final flutterWebViewPlugin = FlutterWebviewPlugin();
+  //TODO: Replace with globalkey to webviewcontroller
   
   launchBrowser(int index, String url) {
     _currentIndex = index;
     setState(() {});
-    flutterWebViewPlugin.reloadUrl(url);
-    flutterWebViewPlugin.show();
+    //webviewKey.currentState?.loadUrl(url: url);
   }
 
   @override
@@ -53,7 +51,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         child: Wallet(notifyParent: launchBrowser)),
                     Offstage(
                       offstage: _currentIndex != 1,
-                      child: EnsName(),
+                      child: Browser(),
                     )
                   ],
                 )),
@@ -62,12 +60,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 onTap: (int index) {
                   setState(() {
                     _currentIndex = index;
-                  });
-                  if (_currentIndex == 0) {
-                    flutterWebViewPlugin.hide();
-                  } else
-                    flutterWebViewPlugin.show();
-                },
+                  });},
                 items: [
                   BottomNavigationBarItem(
                     icon: Icon(Icons.attach_money),
