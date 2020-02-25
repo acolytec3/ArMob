@@ -26,7 +26,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   launchBrowser(int index, String url) {
     _currentIndex = index;
     setState(() {});
-    //webviewKey.currentState?.loadUrl(url: url);
+    webviewKey.currentState.webViewController.loadUrl(url: url);
   }
 
   @override

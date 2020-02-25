@@ -27,20 +27,19 @@ class WebViewContainer extends StatefulWidget {
 }
 
 class WebViewContainerState extends State<WebViewContainer> {
-  InAppWebViewController _webViewController;
+  InAppWebViewController webViewController;
   double _progress = 0;
  @override
   Widget build(BuildContext context) {
     final _walletString =
         Provider.of<WalletData>(context, listen: false).walletString;
-    final mes = jsonEncode(_walletString).toString();
     return InAppWebView(
                   initialUrl: "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
                   initialHeaders: {},
                   initialOptions: InAppWebViewWidgetOptions(
                   ),
                   onWebViewCreated: (InAppWebViewController controller) {
-                    _webViewController = controller;
+                    webViewController = controller;
                   },
                   onProgressChanged: (InAppWebViewController controller, int progress) {
                     setState(() {
@@ -48,8 +47,8 @@ class WebViewContainerState extends State<WebViewContainer> {
                     });
                   },
                   onLoadStop: (InAppWebViewController controller, String status) {
-                            controller.evaluateJavascript(source: cache);
-                            controller.evaluateJavascript(source: signingFunction);
+                            webViewController.evaluateJavascript(source: cache);
+                            webViewController.evaluateJavascript(source: signingFunction);
                   });
   }
 }
@@ -65,8 +64,6 @@ class BrowserState extends State<Browser> {
 
   //TODO - Make this a global key somehow
 
-  InAppWebViewController webView;
-
   void setUrl(String resolvedName) async {
     var trimmedName = resolvedName;
     if (resolvedName.contains('http://')) {
@@ -77,18 +74,18 @@ class BrowserState extends State<Browser> {
       }
     }
     if (trimmedName.contains('/')) {
-      webView.loadUrl(url: "https://" + trimmedName);
+      webviewKey.currentState.webViewController.loadUrl(url: "https://" + trimmedName);
     } else {
       if (trimmedName.endsWith('.eth')) {
         try {
           final arTx = await resolve(nameHash(name));
           final url = 'https://arweave.net/' + arTx.toString();
-          webView.loadUrl(url: url);
+          webviewKey.currentState.webViewController.loadUrl(url: url);
         } catch (__) {
           print("Name could not be resolved");
         }
       } else {
-        webView.loadUrl(url: "https://" + trimmedName);
+        webviewKey.currentState.webViewController.loadUrl(url: "https://" + trimmedName);
       }
     }
   }
@@ -132,16 +129,16 @@ class BrowserState extends State<Browser> {
               IconButton(
                   icon: Icon(Icons.arrow_back),
                   tooltip: "Back",
-                  onPressed: () => webView.goBack()),
+                  onPressed: () => webviewKey.currentState.webViewController.goBack()),
               IconButton(
                   icon: Icon(Icons.replay),
                   tooltip: "Reload",
-                  onPressed: () => webView.reload()),
+                  onPressed: () => webviewKey.currentState.webViewController.reload()),
               IconButton(
                   icon: Icon(Icons.lock_open),
                   tooltip: "Unlock Wallet",
                   onPressed: (_walletString != null)
-                      ? () => webView.evaluateJavascript(source: '''
+                     ? () => webviewKey.currentState.webViewController.evaluateJavascript(source: '''
           var walletString = $mes;
           queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
           re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
