@@ -45,8 +45,8 @@ class WalletState extends State<Wallet> {
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_wallet, _balance);
       Provider.of<WalletData>(context, listen: false).updateArweaveId(await storage.read(key:'arweaveId'));
-      //final txns = await storage.read(key: 'txHistory');
-      //_allTx = json.decode(txns);        
+      final txns = await storage.read(key: 'txHistory');
+      _allTx = json.decode(txns);        
     }
 
     loading = false;
@@ -96,7 +96,7 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
-    //TODO: read tx history from storage instead of pinging remote node
+
     if (_allTx == null) {
       try {
         List allToTxns = await _myWallet.allTransactionsToAddress();
