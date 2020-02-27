@@ -5,18 +5,23 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'package:arweave/appState.dart';
 
-var loginFunction;
+var loginFunction, signFunction;
 
 final webviewKey = GlobalKey<WebViewContainerState>();
 
-final cache =
-    'cache = arweave.transactions.sign; alert("ArMob will manage message signing in this Dapp");';
+final oldSigningFunction =
+    'oldSigningFunction = arweave.transactions.sign; alert("ArMob will manage message signing in this Dapp");';
 final signingFunction = '''arweave.transactions.sign = async function() {
 if (confirm(`Transaction Fee \${arweave.ar.winstonToAr(arguments[0].reward)} AR. Do you want to sign this transaction?`)) {
-result = await cache.apply(this, arguments);
+result = await oldSigningFunction.apply(this, arguments);
 return result;
 }
 else { alert('Transaction canceled')}}''';
+
+final unlockFunction =
+    '''queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
+          re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
+          loginFunctionName = (queries[0].text.match(re))[0];''';
 
 class WebViewContainer extends StatefulWidget {
   WebViewContainer({Key key}) : super(key: key);
@@ -41,9 +46,23 @@ class WebViewContainerState extends State<WebViewContainer> {
               initialUrl:
                   "https://ftesrg4ur46h.arweave.net/nej78d0EJaSHwhxv0HAZkTGk0Dmc15sChUYfAC48QHI/index.html",
               initialHeaders: {},
-              initialOptions: InAppWebViewWidgetOptions(),
+              initialOptions: InAppWebViewWidgetOptions(
+                  crossPlatform: InAppWebViewOptions(debuggingEnabled: true)),
               onWebViewCreated: (InAppWebViewController controller) {
                 webViewController = controller;
+
+                controller.addJavaScriptHandler(
+                    handlerName: "ableToSign",
+                    callback: (args) {
+                      loginFunction = args[0];
+                      signFunction = args[1];
+                      print('ArMob found a signing function!');
+                      print(args.toString());
+                      return "Still seeing you";
+                    });
+              },
+              onConsoleMessage: (InAppWebViewController controller, message) {
+                print("Message from javascript - ${message.message}");
               },
               onProgressChanged:
                   (InAppWebViewController controller, int progress) {
@@ -52,8 +71,20 @@ class WebViewContainerState extends State<WebViewContainer> {
                 });
               },
               onLoadStop: (InAppWebViewController controller, String status) {
-                webViewController.evaluateJavascript(source: cache);
+                webViewController.evaluateJavascript(
+                    source: oldSigningFunction);
                 webViewController.evaluateJavascript(source: signingFunction);
+                webViewController.evaluateJavascript(source: '''
+                window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
+                  queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
+          re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
+          loginFunctionName = (queries[0].text.match(re))[0];
+          console.log(loginFunctionName);
+             window.flutter_inappwebview.callHandler('ableToSign', loginFunctionName, oldSigningFunction).then(function(result) {
+               console.log("Hello " + result);
+             });
+           });
+                ''');
               }))
     ]);
   }

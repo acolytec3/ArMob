@@ -20,7 +20,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentIndex = 0;
   File wallet;
-
   launchBrowser(int index, String url) {
     _currentIndex = index;
     setState(() {});
@@ -29,10 +28,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    
     return MaterialApp(
         title: 'ArMob',
         home: Scaffold(
-            appBar: AppBar(title: Text("Wallet"), actions: <Widget>[
+            appBar: AppBar(title: Text(((Provider.of<WalletData>(context, listen: true).arweaveId) != null) ? Provider.of<WalletData>(context, listen: true).arweaveId : 'Wallet'), actions: <Widget>[
               Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
                 Padding(child: Text(Provider.of<WalletData>(context, listen: true)
                         .walletBalance

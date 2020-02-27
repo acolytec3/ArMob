@@ -44,7 +44,8 @@ class WalletState extends State<Wallet> {
       _balance = await _myWallet.balance();
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_wallet, _balance);
-      final txns = await storage.read(key: 'txHistory');
+      Provider.of<WalletData>(context, listen: false).updateArweaveId(await storage.read(key:'arweaveId'));
+      //final txns = await storage.read(key: 'txHistory');
       //_allTx = json.decode(txns);        
     }
 
@@ -60,6 +61,9 @@ class WalletState extends State<Wallet> {
       _myWallet = Ar.Wallet(jsonWebKey: _walletString);
       await storage.write(key: "walletString", value: _walletString);
       _balance = await _myWallet.balance();
+      final _arweaveId = await Ar.Transaction.arweaveIdLookup(_myWallet.address);
+      Provider.of<WalletData>(context, listen: false).updateArweaveId(_arweaveId);
+      await storage.write(key: 'arweaveId', value: _arweaveId);
       _loadDataTxs();
       _loadAllTxns();
       Provider.of<WalletData>(context, listen: false)
@@ -73,6 +77,7 @@ class WalletState extends State<Wallet> {
   void _removeWallet() async {
     await storage.deleteAll();
     Provider.of<WalletData>(context, listen: false).updateWallet(null, 0);
+    Provider.of<WalletData>(context, listen: true).updateArweaveId('Wallet');
     _balance = 0;
     _dataTxHistory = null;
     _myWallet = null;
