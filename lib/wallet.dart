@@ -23,6 +23,7 @@ class WalletState extends State<Wallet> {
   var _balance;
   List _dataTxHistory;
   List<dynamic> _allTx = [];
+  List _allTxIds = [];
 
   //App components
   final storage = FlutterSecureStorage();
@@ -46,7 +47,9 @@ class WalletState extends State<Wallet> {
           .updateWallet(_wallet, _balance);
       Provider.of<WalletData>(context, listen: false).updateArweaveId(await storage.read(key:'arweaveId'));
       final txns = await storage.read(key: 'txHistory');
-      _allTx = json.decode(txns);        
+      _allTx = json.decode(txns);      
+      final txIds = await storage.read(key: 'txIds');
+      _allTxIds = json.decode(txIds);  
     }
 
     loading = false;
@@ -101,11 +104,9 @@ class WalletState extends State<Wallet> {
       try {
         List allToTxns = await _myWallet.allTransactionsToAddress();
         List allFromTxns = await _myWallet.allTransactionsFromAddress();
-        _allTx = allToTxns;
-        _allTx.addAll(allFromTxns);
-        for (var i = 0; i < _allTx.length; i++) {
-          _allTx[i] = {'id': _allTx[i]};
-        }
+        _allTxIds = allToTxns;
+        _allTxIds.addAll(allFromTxns);
+        _allTx = _allTxIds.map((txId) => {'id':txId}).toList();
         setState(() {});
         for (var i = 0; i < _allTx.length; i++) {
           final txnDetail =
@@ -114,6 +115,7 @@ class WalletState extends State<Wallet> {
           setState(() {});
         }
         storage.write(key: 'txHistory', value: jsonEncode(_allTx).toString());
+        storage.write(key: 'txIds', value: jsonEncode(_allTxIds).toString());
         print('Wrote all txns to storage');
       } catch (__) {
         print("Error loading tx history: $__");
