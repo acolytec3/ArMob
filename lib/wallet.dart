@@ -100,6 +100,7 @@ class WalletState extends State<Wallet> {
 
   void _loadAllTxns() async {
 
+    // If no transactions are found, pull all transactions from Arweave
     if (_allTx == null) {
       try {
         List allToTxns = await _myWallet.allTransactionsToAddress();
@@ -120,6 +121,23 @@ class WalletState extends State<Wallet> {
       } catch (__) {
         print("Error loading tx history: $__");
       }
+    } 
+    // Check for any new transactions and add to txnList if found
+    else {
+        List allTxns = await _myWallet.allTransactionsToAddress();
+        List allFromTxns = await _myWallet.allTransactionsFromAddress();        
+        allTxns.addAll(allFromTxns);
+        List newTxnIds = allTxns.where((txId) => !(_allTxIds.contains(txId)));
+        if (newTxnIds.length > 0 ){
+          print(newTxnIds.toString());
+          _allTxIds.addAll(newTxnIds);
+          setState(() {});
+          for (var i = 0; i < newTxnIds.length; i++) {
+            final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
+            _allTx.add(txnDetail);
+          }
+          setState(() {});
+        }
     }
   }
 
