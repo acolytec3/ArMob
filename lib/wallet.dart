@@ -50,10 +50,17 @@ class WalletState extends State<Wallet> {
         Provider.of<WalletData>(context, listen: false)
             .updateArweaveId(_arweaveId);
       }
+
       final txns = await storage.read(key: 'txHistory');
-      _allTx = json.decode(txns);
+      if (txns != null) {
+        _allTx = json.decode(txns);
+      }
+
       final txIds = await storage.read(key: 'txIds');
-      _allTxIds = json.decode(txIds);
+      if (txIds != null) {
+        _allTxIds = json.decode(txIds);
+      }
+      
     }
 
     loading = false;
@@ -116,8 +123,33 @@ class WalletState extends State<Wallet> {
         _allTx = _allTxIds.map((txId) => {'id': txId}).toList();
         setState(() {});
         for (var i = 0; i < _allTx.length; i++) {
-          final txnDetail =
+          Map<dynamic, dynamic> txnDetail =
               await Ar.Transaction.getTransaction(_allTx[i]['id']);
+          if (txnDetail['target'] != null) {
+            if (txnDetail['target'] == _myWallet.address) {
+              txnDetail['to'] = Provider.of<WalletData>(context, listen: false).arweaveId;
+            }
+            else {
+              txnDetail['to'] = await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
+              if (txnDetail['to'] == 'None') {
+                txnDetail['to'] = txnDetail['target'];
+              }
+            }
+          }
+          else txnDetail['to'] = 'None';
+          if (txnDetail['owner'] == _myWallet.address){
+              if (Provider.of<WalletData>(context, listen: false).arweaveId != 'None') {
+                txnDetail['from'] = Provider.of<WalletData>(context, listen: false).arweaveId;
+              }
+              else txnDetail['from'] = _myWallet.address;
+            }
+            else {
+              txnDetail['from'] = await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
+              if (txnDetail['from'] == 'None') {
+                txnDetail['from'] = txnDetail['owner'];
+              }
+            }
+
           _allTx[i] = txnDetail;
           setState(() {});
         }
@@ -206,6 +238,8 @@ class WalletState extends State<Wallet> {
                     Text('Amount ${Ar.winstonToAr(_allTx[x]['quantity'])} AR'),
                     Text(
                         'Fee: ${Ar.winstonToAr(_allTx[x]['reward']).toString()} AR'),
+                    Text('From: ${_allTx[x]['from']}'),
+                    Text('To: ${_allTx[x]['to']}')
                   ]),
               initiallyExpanded: false,
               children: <Widget>[
