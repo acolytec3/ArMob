@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:mime_type/mime_type.dart';
+import 'package:fast_rsa/rsa.dart';
+
 
 
 class Transaction extends StatefulWidget {
@@ -63,16 +65,23 @@ _content = utf8.encode(file.readAsStringSync());
         txAnchor, _transactionCost,
         data: _content, tags: _tags);
 
+    final rsaPrivateKey = await RSA.convertJWKToPrivateKey(widget.wallet.jwk, "");
+    print("RSA extracted private key $rsaPrivateKey");
+    print("Raw transaction is ${base64Encode(rawTransaction)}");    
     try {
+
       List<int> signedTransaction =
           await platform.invokeMethod('signTransaction', {
         'rawTransaction': Uint8List.fromList(rawTransaction),
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      print('Signed transaction is: $signedTransaction');
+      print('Signed transaction is: ${base64.encode(signedTransaction)}');
+      final rsaSignature = await RSA.signPSS(base64.encode(rawTransaction), RSAHash.sha256, RSASaltLength.equalsHash, rsaPrivateKey);
+      print('RSA signed tranasaction = ${(rsaSignature)}');
+
       final result = await widget.wallet.postTransaction(
-          signedTransaction, txAnchor, _transactionCost,
+          base64.decode(rsaSignature), txAnchor, _transactionCost,
           data: _content, tags: _tags);
       print(result.body.toString());
       print('Transaction status: ${result.statusCode}');

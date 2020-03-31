@@ -64,9 +64,9 @@ class WalletState extends State<Wallet> {
       _myWallet = Ar.Wallet(jsonWebKey: _walletString);
       await storage.write(key: "walletString", value: _walletString);
       _balance = await _myWallet.balance();
-      final _arweaveId = await Ar.Transaction.arweaveIdLookup(_myWallet.address);
-      Provider.of<WalletData>(context, listen: false).updateArweaveId(_arweaveId);
-      await storage.write(key: 'arweaveId', value: _arweaveId);
+     // final _arweaveId = await Ar.Transaction.arweaveIdLookup(_myWallet.address);
+      //Provider.of<WalletData>(context, listen: false).updateArweaveId(_arweaveId);
+      //await storage.write(key: 'arweaveId', value: _arweaveId);
       _loadDataTxs();
       _loadAllTxns();
       Provider.of<WalletData>(context, listen: false)
