@@ -45,11 +45,15 @@ class WalletState extends State<Wallet> {
       _balance = await _myWallet.balance();
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_wallet, _balance);
-      Provider.of<WalletData>(context, listen: false).updateArweaveId(await storage.read(key:'arweaveId'));
+      final _arweaveId = await storage.read(key: 'arweaveId');
+      if (_arweaveId != null) {
+        Provider.of<WalletData>(context, listen: false)
+            .updateArweaveId(_arweaveId);
+      }
       final txns = await storage.read(key: 'txHistory');
-      _allTx = json.decode(txns);      
+      _allTx = json.decode(txns);
       final txIds = await storage.read(key: 'txIds');
-      _allTxIds = json.decode(txIds);  
+      _allTxIds = json.decode(txIds);
     }
 
     loading = false;
@@ -64,9 +68,12 @@ class WalletState extends State<Wallet> {
       _myWallet = Ar.Wallet(jsonWebKey: _walletString);
       await storage.write(key: "walletString", value: _walletString);
       _balance = await _myWallet.balance();
-      final _arweaveId = await Ar.Transaction.arweaveIdLookup(_myWallet.address);
-      Provider.of<WalletData>(context, listen: false).updateArweaveId(_arweaveId);
-      await storage.write(key: 'arweaveId', value: _arweaveId);
+      var _arweaveId = await Ar.Transaction.arweaveIdLookup(_myWallet.address);
+      if (_arweaveId != 'None') {
+        Provider.of<WalletData>(context, listen: false)
+            .updateArweaveId(_arweaveId);
+        await storage.write(key: 'arweaveId', value: _arweaveId);
+      }
       _loadDataTxs();
       _loadAllTxns();
       Provider.of<WalletData>(context, listen: false)
@@ -99,7 +106,6 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
-
     // If no transactions are found, pull all transactions from Arweave
     if (_allTx == null) {
       try {
@@ -107,7 +113,7 @@ class WalletState extends State<Wallet> {
         List allFromTxns = await _myWallet.allTransactionsFromAddress();
         _allTxIds = allToTxns;
         _allTxIds.addAll(allFromTxns);
-        _allTx = _allTxIds.map((txId) => {'id':txId}).toList();
+        _allTx = _allTxIds.map((txId) => {'id': txId}).toList();
         setState(() {});
         for (var i = 0; i < _allTx.length; i++) {
           final txnDetail =
@@ -121,23 +127,23 @@ class WalletState extends State<Wallet> {
       } catch (__) {
         print("Error loading tx history: $__");
       }
-    } 
+    }
     // Check for any new transactions and add to txnList if found
     else {
-        List allTxns = await _myWallet.allTransactionsToAddress();
-        List allFromTxns = await _myWallet.allTransactionsFromAddress();        
-        allTxns.addAll(allFromTxns);
-        List newTxnIds = allTxns.where((txId) => !(_allTxIds.contains(txId)));
-        if (newTxnIds.length > 0 ){
-          print(newTxnIds.toString());
-          _allTxIds.addAll(newTxnIds);
-          setState(() {});
-          for (var i = 0; i < newTxnIds.length; i++) {
-            final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
-            _allTx.add(txnDetail);
-          }
-          setState(() {});
+      List allTxns = await _myWallet.allTransactionsToAddress();
+      List allFromTxns = await _myWallet.allTransactionsFromAddress();
+      allTxns.addAll(allFromTxns);
+      List newTxnIds = allTxns.where((txId) => !(_allTxIds.contains(txId)));
+      if (newTxnIds.length > 0) {
+        print(newTxnIds.toString());
+        _allTxIds.addAll(newTxnIds);
+        setState(() {});
+        for (var i = 0; i < newTxnIds.length; i++) {
+          final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
+          _allTx.add(txnDetail);
         }
+        setState(() {});
+      }
     }
   }
 
@@ -179,7 +185,6 @@ class WalletState extends State<Wallet> {
           List<Widget> txn = [Text('Tags')];
 
           for (final tag in _allTx[x]['tags']) {
-
             txn.add(Row(
               children: <Widget>[
                 Text('Name: ${tag['name']}'),
