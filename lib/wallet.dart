@@ -60,7 +60,6 @@ class WalletState extends State<Wallet> {
       if (txIds != null) {
         _allTxIds = json.decode(txIds);
       }
-      
     }
 
     loading = false;
@@ -127,28 +126,31 @@ class WalletState extends State<Wallet> {
               await Ar.Transaction.getTransaction(_allTx[i]['id']);
           if (txnDetail['target'] != null) {
             if (txnDetail['target'] == _myWallet.address) {
-              txnDetail['to'] = Provider.of<WalletData>(context, listen: false).arweaveId;
-            }
-            else {
-              txnDetail['to'] = await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
+              txnDetail['to'] =
+                  Provider.of<WalletData>(context, listen: false).arweaveId;
+            } else {
+              txnDetail['to'] =
+                  await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
               if (txnDetail['to'] == 'None') {
                 txnDetail['to'] = txnDetail['target'];
               }
             }
+          } else
+            txnDetail['to'] = 'None';
+          if (txnDetail['owner'] == _myWallet.address) {
+            if (Provider.of<WalletData>(context, listen: false).arweaveId !=
+                'None') {
+              txnDetail['from'] =
+                  Provider.of<WalletData>(context, listen: false).arweaveId;
+            } else
+              txnDetail['from'] = _myWallet.address;
+          } else {
+            txnDetail['from'] =
+                await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
+            if (txnDetail['from'] == 'None') {
+              txnDetail['from'] = txnDetail['owner'];
+            }
           }
-          else txnDetail['to'] = 'None';
-          if (txnDetail['owner'] == _myWallet.address){
-              if (Provider.of<WalletData>(context, listen: false).arweaveId != 'None') {
-                txnDetail['from'] = Provider.of<WalletData>(context, listen: false).arweaveId;
-              }
-              else txnDetail['from'] = _myWallet.address;
-            }
-            else {
-              txnDetail['from'] = await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
-              if (txnDetail['from'] == 'None') {
-                txnDetail['from'] = txnDetail['owner'];
-              }
-            }
 
           _allTx[i] = txnDetail;
           setState(() {});
@@ -211,57 +213,48 @@ class WalletState extends State<Wallet> {
     return txnList;
   }
 
-  List<Widget> buildTxHistory() {
-    var txnList = <Widget>[];
-    try {
-      for (var x = 0; x < _allTx.length; x++) {
-        if (_allTx[x].containsKey('reward')) {
-          List<Widget> txn = [Text('Tags')];
+  Widget txnDetailWidget(BuildContext context, int index) {
+    final txnDetail =
+        Provider.of<WalletData>(context, listen: false).allTx[index];
+    if (txnDetail.containsKey('tags')) {
+      List<Widget> txn = [Text('Tags')];
 
-          for (final tag in _allTx[x]['tags']) {
-            txn.add(Row(
-              children: <Widget>[
-                Text('Name: ${tag['name']}'),
-                Text('Name: ${tag['value']}')
-              ],
-            ));
-          }
-
-          txnList.add(ExpansionTile(
-              title: ListTile(
-                  title: Text(_allTx[x]['id']),
-                  onLongPress: () {
-                    widget.notifyParent(1,
-                        "https://viewblock.io/arweave/tx/${_allTx[x]['id']}");
-                  }),
-              subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Amount ${Ar.winstonToAr(_allTx[x]['quantity'])} AR'),
-                    Text(
-                        'Fee: ${Ar.winstonToAr(_allTx[x]['reward']).toString()} AR'),
-                    Text('From: ${_allTx[x]['from']}'),
-                    Text('To: ${_allTx[x]['to']}')
-                  ]),
-              initiallyExpanded: false,
-              children: <Widget>[
-                Column(
-                    children: txn, crossAxisAlignment: CrossAxisAlignment.start)
-              ]));
-        } else {
-          txnList.add(ListTile(
-              title: Text(_allTx[x]['id']),
+      for (final tag in txnDetail['tags']) {
+        txn.add(Row(
+          children: <Widget>[
+            Text('Name: ${tag['name']}'),
+            Text('Name: ${tag['value']}')
+          ],
+        ));
+      }
+      return ExpansionTile(
+          title: ListTile(
+              title: Text(txnDetail['id']),
               onLongPress: () {
                 widget.notifyParent(
-                    1, "https://viewblock.io/arweave/tx/${_allTx[x]['id']}");
-              }));
-        }
-      }
-    } catch (__) {
-      print('Error retrieving transactions: $__');
-      txnList.add(Text('No transactions retrieved'));
+                    1, "https://viewblock.io/arweave/tx/${txnDetail['id']}");
+              }),
+          subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Amount ${Ar.winstonToAr(txnDetail['quantity'])} AR'),
+                Text(
+                    'Fee: ${Ar.winstonToAr(txnDetail['reward']).toString()} AR'),
+                Text('From: ${txnDetail['from']}'),
+                Text('To: ${txnDetail['to']}')
+              ]),
+          initiallyExpanded: false,
+          children: <Widget>[
+            Column(children: txn, crossAxisAlignment: CrossAxisAlignment.start)
+          ]);
+    } else {
+      return ListTile(
+          title: Text(txnDetail['id']),
+          onLongPress: () {
+            widget.notifyParent(
+                1, "https://viewblock.io/arweave/tx/${txnDetail['id']}");
+          });
     }
-    return txnList;
   }
 
   @override
@@ -278,7 +271,12 @@ class WalletState extends State<Wallet> {
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
-                  : ListView(children: buildTxHistory()),
+                  : ListView.builder(
+                      itemBuilder: (BuildContext context, int index) =>
+                          txnDetailWidget(context, index),
+                      itemCount: Provider.of<WalletData>(context, listen: true)
+                          .allTx
+                          .length),
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
