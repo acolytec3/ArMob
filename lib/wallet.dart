@@ -59,11 +59,11 @@ class WalletState extends State<Wallet> {
           setState(() {});
           _newTxns();
         } catch (__) {
-          print('Error loading transactions: $__');
+          debugPrint('Error loading transactions: $__');
           _loadAllTxns();
         }
       }
-      else print ('No tx found in history');
+      else debugPrint ('No tx found in history');
 
       final txIds = await storage.read(key: 'txIds');
       if (txIds != null) {
@@ -71,7 +71,7 @@ class WalletState extends State<Wallet> {
           final allTxIds = json.decode(txIds);
           Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
         } catch (__) {
-          print('Error loading transaction IDs: $__');
+          debugPrint('Error loading transaction IDs: $__');
         }
       }
     }
@@ -100,7 +100,7 @@ class WalletState extends State<Wallet> {
           .updateWallet(_walletString, _balance);
       setState(() {});
     } catch (__) {
-      print("Error encountered - $__");
+      debugPrint("Error encountered - $__");
     }
   }
 
@@ -122,7 +122,7 @@ class WalletState extends State<Wallet> {
       _dataTxHistory = dataTxHistory;
       setState(() {});
     } catch (__) {
-      print('Error loading data tx history: $__');
+      debugPrint('Error loading data tx history: $__');
     }
   }
 
@@ -173,9 +173,9 @@ class WalletState extends State<Wallet> {
               .allTx
               .toString()));
       storage.write(key: 'txIds', value: jsonEncode(allTxIds).toString());
-      print('Wrote all txns to storage');
+      debugPrint('Wrote all txns to storage');
     } catch (__) {
-      print("Error loading tx history: $__");
+      debugPrint("Error loading tx history: $__");
     }
   }
 
@@ -186,7 +186,7 @@ class WalletState extends State<Wallet> {
     allTxnIds.addAll(allFromTxns);
     List newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
     if (newTxnIds.length > 0) {
-      print(newTxnIds.toString());
+      debugPrint(newTxnIds.toString());
       for (var i = 0; i < newTxnIds.length; i++) {
         final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
@@ -219,7 +219,7 @@ class WalletState extends State<Wallet> {
         txnList.add(dataTransactionItem(txn));
       }
     } catch (__) {
-      print('Error retrieving transactions: $__');
+      debugPrint('Error retrieving transactions: $__');
       txnList.add(Text('No transactions retrieved'));
     }
     return txnList;
