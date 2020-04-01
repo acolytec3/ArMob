@@ -41,4 +41,10 @@ class WalletData extends ChangeNotifier {
   void setTxs(List<dynamic> txns) {
     _allTx = txns;
   }
+
+  void addTx(dynamic txn) {
+    _allTx.add(txn);
+    _allTxIds.add(txn['id']);
+    notifyListeners();
+  }
 }

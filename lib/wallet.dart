@@ -22,8 +22,6 @@ class WalletState extends State<Wallet> {
   Ar.Wallet _myWallet;
   var _balance;
   List _dataTxHistory;
-  List<dynamic> _allTx = [];
-  List _allTxIds = [];
 
   //App components
   final storage = FlutterSecureStorage();
@@ -53,12 +51,26 @@ class WalletState extends State<Wallet> {
 
       final txns = await storage.read(key: 'txHistory');
       if (txns != null) {
-        _allTx = json.decode(txns);
+        print('Txns retrieved: $txns');
+        try {
+          final allTx = json.decode(txns);
+          Provider.of<WalletData>(context, listen: false).setTxs(allTx);
+          setState(() {});
+          _newTxns();
+        } catch (__) {
+          print('Error loading transactions: $__');
+          _loadAllTxns();
+        }
       }
 
       final txIds = await storage.read(key: 'txIds');
       if (txIds != null) {
-        _allTxIds = json.decode(txIds);
+        try {
+          final allTxIds = json.decode(txIds);
+          Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
+        } catch (__) {
+          print('Error loading transaction IDs: $__');
+        }
       }
     }
 
@@ -86,18 +98,19 @@ class WalletState extends State<Wallet> {
           .updateWallet(_walletString, _balance);
       setState(() {});
     } catch (__) {
-      print("Invalid Wallet File");
+      print("Error encountered - $__");
     }
   }
 
   void _removeWallet() async {
     await storage.deleteAll();
     Provider.of<WalletData>(context, listen: false).updateWallet(null, 0);
-    Provider.of<WalletData>(context, listen: true).updateArweaveId('Wallet');
+    Provider.of<WalletData>(context, listen: false).updateArweaveId('Wallet');
+    Provider.of<WalletData>(context, listen: false).setTxs([]);
+    Provider.of<WalletData>(context, listen: false).setTxIds([]);
     _balance = 0;
     _dataTxHistory = null;
     _myWallet = null;
-    _allTx = null;
     setState(() {});
   }
 
@@ -112,77 +125,70 @@ class WalletState extends State<Wallet> {
   }
 
   void _loadAllTxns() async {
-    // If no transactions are found, pull all transactions from Arweave
-    if (_allTx == null) {
-      try {
-        List allToTxns = await _myWallet.allTransactionsToAddress();
-        List allFromTxns = await _myWallet.allTransactionsFromAddress();
-        _allTxIds = allToTxns;
-        _allTxIds.addAll(allFromTxns);
-        _allTx = _allTxIds.map((txId) => {'id': txId}).toList();
-        setState(() {});
-        for (var i = 0; i < _allTx.length; i++) {
-          Map<dynamic, dynamic> txnDetail =
-              await Ar.Transaction.getTransaction(_allTx[i]['id']);
-          if (txnDetail['target'] != null) {
-            if (txnDetail['target'] == _myWallet.address) {
-              txnDetail['to'] =
-                  Provider.of<WalletData>(context, listen: false).arweaveId;
-            } else {
-              txnDetail['to'] =
-                  await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
-              if (txnDetail['to'] == 'None') {
-                txnDetail['to'] = txnDetail['target'];
-              }
-            }
-          } else
-            txnDetail['to'] = 'None';
-          if (txnDetail['owner'] == _myWallet.address) {
-            if (Provider.of<WalletData>(context, listen: false).arweaveId !=
-                'None') {
-              txnDetail['from'] =
-                  Provider.of<WalletData>(context, listen: false).arweaveId;
-            } else
-              txnDetail['from'] = _myWallet.address;
+    try {
+      List allToTxns = await _myWallet.allTransactionsToAddress();
+      List allFromTxns = await _myWallet.allTransactionsFromAddress();
+      final allTxIds = allToTxns;
+      allTxIds.addAll(allFromTxns);
+      Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
+
+      for (var i = 0; i < allTxIds.length; i++) {
+        Map<dynamic, dynamic> txnDetail =
+            await Ar.Transaction.getTransaction(allTxIds[i]);
+        if (txnDetail['target'] != null) {
+          if (txnDetail['target'] == _myWallet.address) {
+            txnDetail['to'] =
+                Provider.of<WalletData>(context, listen: false).arweaveId;
           } else {
-            txnDetail['from'] =
-                await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
-            if (txnDetail['from'] == 'None') {
-              txnDetail['from'] = txnDetail['owner'];
+            txnDetail['to'] =
+                await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
+            if (txnDetail['to'] == 'None') {
+              txnDetail['to'] = txnDetail['target'];
             }
           }
+        } else
+          txnDetail['to'] = 'None';
+        if (txnDetail['owner'] == _myWallet.address) {
+          if (Provider.of<WalletData>(context, listen: false).arweaveId !=
+              'None') {
+            txnDetail['from'] =
+                Provider.of<WalletData>(context, listen: false).arweaveId;
+          } else
+            txnDetail['from'] = _myWallet.address;
+        } else {
+          txnDetail['from'] =
+              await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
+          if (txnDetail['from'] == 'None') {
+            txnDetail['from'] = txnDetail['owner'];
+          }
+        }
 
-          _allTx[i] = txnDetail;
-          setState(() {});
-        }
-        storage.write(key: 'txHistory', value: jsonEncode(_allTx).toString());
-        storage.write(key: 'txIds', value: jsonEncode(_allTxIds).toString());
-        print('Wrote all txns to storage');
-      } catch (__) {
-        print("Error loading tx history: $__");
-      }
-    }
-    // Check for any new transactions and add to txnList if found
-    else {
-      List allTxns = await _myWallet.allTransactionsToAddress();
-      List allFromTxns = await _myWallet.allTransactionsFromAddress();
-      allTxns.addAll(allFromTxns);
-      List newTxnIds = allTxns.where((txId) => !(_allTxIds.contains(txId)));
-      if (newTxnIds.length > 0) {
-        print(newTxnIds.toString());
-        _allTxIds.addAll(newTxnIds);
-        setState(() {});
-        for (var i = 0; i < newTxnIds.length; i++) {
-          final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
-          _allTx.add(txnDetail);
-        }
+        Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
         setState(() {});
       }
+      storage.write(key: 'txHistory', value: jsonEncode(Provider.of<WalletData>(context, listen: false).allTx.toString()));
+      storage.write(key: 'txIds', value: jsonEncode(allTxIds).toString());
+      print('Wrote all txns to storage');
+    } catch (__) {
+      print("Error loading tx history: $__");
     }
-    Provider.of<WalletData>(context, listen: false).setTxs(_allTx);
-    Provider.of<WalletData>(context, listen: false).setTxIds(_allTxIds);
   }
 
+  void _newTxns() async {
+    List allTxnIds = await _myWallet.allTransactionsToAddress();
+      List allFromTxns = await _myWallet.allTransactionsFromAddress();
+      final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
+      allTxnIds.addAll(allFromTxns);
+      List newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
+      if (newTxnIds.length > 0) {
+        print(newTxnIds.toString());
+        for (var i = 0; i < newTxnIds.length; i++) {
+          final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
+          Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+        }
+        setState(() {});
+      }
+  }
   Widget dataTransactionItem(transaction) {
     var contentType = {};
     try {
