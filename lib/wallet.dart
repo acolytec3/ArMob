@@ -50,8 +50,9 @@ class WalletState extends State<Wallet> {
       }
 
       final txns = await storage.read(key: 'txHistory');
+      
       if (txns != null) {
-        print('Txns retrieved: $txns');
+        debugPrint('Txns retrieved: $txns', wrapWidth: 1000);
         try {
           final allTx = json.decode(txns);
           Provider.of<WalletData>(context, listen: false).setTxs(allTx);
@@ -62,6 +63,7 @@ class WalletState extends State<Wallet> {
           _loadAllTxns();
         }
       }
+      else print ('No tx found in history');
 
       final txIds = await storage.read(key: 'txIds');
       if (txIds != null) {
