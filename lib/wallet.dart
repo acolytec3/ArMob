@@ -267,7 +267,7 @@ class WalletState extends State<Wallet> {
           subtitle: Text('Transaction pending'),
           onLongPress: () {
             widget.notifyParent(
-                1, "https://viewblock.io/arweave/tx/${txnDetail['id']}");
+                1, "https://arweave.net/tx/${txnDetail['id']}");
           });
     }
   }
