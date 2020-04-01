@@ -84,7 +84,7 @@ _content = utf8.encode(file.readAsStringSync());
       }
       if (_transactionStatus == '200') {
         _transactionResult = 'Transaction ID - ${result[1]} - has been submitted!';
-        final txnDetail = {'id':result[1]};
+        final txnDetail = {'id':result[1], 'status':'pending'};
          Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       } else {
         _transactionResult = 'Transaction could not be submitted.';

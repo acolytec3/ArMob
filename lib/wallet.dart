@@ -149,12 +149,11 @@ class WalletState extends State<Wallet> {
         } else
           txnDetail['to'] = 'None';
         if (txnDetail['owner'] == _myWallet.address) {
-          if (Provider.of<WalletData>(context, listen: false).arweaveId !=
-              'None') {
-            txnDetail['from'] =
-                Provider.of<WalletData>(context, listen: false).arweaveId;
-          } else
-            txnDetail['from'] = _myWallet.address;
+          ((Provider.of<WalletData>(context, listen: false).arweaveId !=
+                  'None'))
+              ? txnDetail['from'] =
+                  Provider.of<WalletData>(context, listen: false).arweaveId
+              : txnDetail['from'] = _myWallet.address;
         } else {
           txnDetail['from'] =
               await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
@@ -166,7 +165,11 @@ class WalletState extends State<Wallet> {
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
         setState(() {});
       }
-      storage.write(key: 'txHistory', value: jsonEncode(Provider.of<WalletData>(context, listen: false).allTx.toString()));
+      storage.write(
+          key: 'txHistory',
+          value: jsonEncode(Provider.of<WalletData>(context, listen: false)
+              .allTx
+              .toString()));
       storage.write(key: 'txIds', value: jsonEncode(allTxIds).toString());
       print('Wrote all txns to storage');
     } catch (__) {
@@ -176,19 +179,20 @@ class WalletState extends State<Wallet> {
 
   void _newTxns() async {
     List allTxnIds = await _myWallet.allTransactionsToAddress();
-      List allFromTxns = await _myWallet.allTransactionsFromAddress();
-      final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
-      allTxnIds.addAll(allFromTxns);
-      List newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
-      if (newTxnIds.length > 0) {
-        print(newTxnIds.toString());
-        for (var i = 0; i < newTxnIds.length; i++) {
-          final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
-          Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
-        }
-        setState(() {});
+    List allFromTxns = await _myWallet.allTransactionsFromAddress();
+    final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
+    allTxnIds.addAll(allFromTxns);
+    List newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
+    if (newTxnIds.length > 0) {
+      print(newTxnIds.toString());
+      for (var i = 0; i < newTxnIds.length; i++) {
+        final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
+        Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       }
+      setState(() {});
+    }
   }
+
   Widget dataTransactionItem(transaction) {
     var contentType = {};
     try {
@@ -222,16 +226,20 @@ class WalletState extends State<Wallet> {
   Widget txnDetailWidget(BuildContext context, int index) {
     final txnDetail =
         Provider.of<WalletData>(context, listen: false).allTx[index];
-    if (txnDetail['tags'] != null) {
-      List<Widget> txn = [Text('Tags')];
 
-      for (final tag in txnDetail['tags']) {
-        txn.add(Row(
-          children: <Widget>[
-            Text('Name: ${tag['name']}'),
-            Text('Name: ${tag['value']}')
-          ],
-        ));
+    if (txnDetail['status'] != 'pending') {
+      List<Widget> txn;
+
+      if (txnDetail['tags'] != null) {
+        List<Widget> txn = [Text('Tags')];
+        for (final tag in txnDetail['tags']) {
+          txn.add(Row(
+            children: <Widget>[
+              Text('Name: ${tag['name']}'),
+              Text('Name: ${tag['value']}')
+            ],
+          ));
+        }
       }
       return ExpansionTile(
           title: ListTile(
@@ -256,6 +264,7 @@ class WalletState extends State<Wallet> {
     } else {
       return ListTile(
           title: Text(txnDetail['id']),
+          subtitle: Text('Transaction pending'),
           onLongPress: () {
             widget.notifyParent(
                 1, "https://viewblock.io/arweave/tx/${txnDetail['id']}");
