@@ -177,6 +177,8 @@ class WalletState extends State<Wallet> {
         setState(() {});
       }
     }
+    Provider.of<WalletData>(context, listen: false).setTxs(_allTx);
+    Provider.of<WalletData>(context, listen: false).setTxIds(_allTxIds);
   }
 
   Widget dataTransactionItem(transaction) {

@@ -5,7 +5,8 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:mime_type/mime_type.dart';
-
+import 'package:provider/provider.dart';
+import 'package:arweave/appState.dart';
 
 class Transaction extends StatefulWidget {
   final Ar.Wallet wallet;
@@ -74,15 +75,16 @@ _content = utf8.encode(file.readAsStringSync());
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content, tags: _tags);
-      print(result.body.toString());
-      print('Transaction status: ${result.statusCode}');
+      
+      print('Transaction status: ${result[0].statusCode}');
       try {
-        _transactionStatus = result.statusCode.toString();
+        _transactionStatus = result[0].statusCode.toString();
       } catch (__) {
         _transactionStatus = '500';
       }
       if (_transactionStatus == '200') {
-        _transactionResult = 'Transaction submitted!';
+        _transactionResult = 'Transaction ID - ${result[1]} - has been submitted!';
+         Provider.of<WalletData>(context, listen: false).addTxId(result[1]);
       } else {
         _transactionResult = 'Transaction could not be submitted.';
       }
