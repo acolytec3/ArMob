@@ -63,7 +63,10 @@ class WalletState extends State<Wallet> {
           _loadAllTxns();
         }
       }
-      else debugPrint ('No tx found in history');
+      else {
+        debugPrint ('No tx found in history');
+        _loadAllTxns();
+      }
 
       final txIds = await storage.read(key: 'txIds');
       if (txIds != null) {
@@ -128,11 +131,10 @@ class WalletState extends State<Wallet> {
 
   void _loadAllTxns() async {
     try {
-      List allToTxns = await _myWallet.allTransactionsToAddress();
-      List allFromTxns = await _myWallet.allTransactionsFromAddress();
-      final allTxIds = allToTxns;
-      allTxIds.addAll(allFromTxns);
-      Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
+      List allToTxnIds = await _myWallet.allTransactionsToAddress();
+      List allFromTxnIds = await _myWallet.allTransactionsFromAddress();
+      final allTxIds = allToTxnIds;
+      allTxIds.addAll(allFromTxnIds);
 
       for (var i = 0; i < allTxIds.length; i++) {
         Map<dynamic, dynamic> txnDetail =
@@ -166,7 +168,9 @@ class WalletState extends State<Wallet> {
 
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
         setState(() {});
+        
       }
+      Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
       storage.write(
           key: 'txHistory',
           value: jsonEncode(Provider.of<WalletData>(context, listen: false)
@@ -228,12 +232,12 @@ class WalletState extends State<Wallet> {
   Widget txnDetailWidget(BuildContext context, int index) {
     final txnDetail =
         Provider.of<WalletData>(context, listen: false).allTx[index];
-
+    List<Widget> txn;
     if (txnDetail['status'] != 'pending') {
-      List<Widget> txn;
+      
 
       if (txnDetail['tags'] != null) {
-        List<Widget> txn = [Text('Tags')];
+        txn = [Text('Tags')];
         for (final tag in txnDetail['tags']) {
           txn.add(Row(
             children: <Widget>[
@@ -242,7 +246,7 @@ class WalletState extends State<Wallet> {
             ],
           ));
         }
-      }
+      } else txn = [Text('No tags')];
       return ExpansionTile(
           title: ListTile(
               title: Text(txnDetail['id']),
