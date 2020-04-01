@@ -222,7 +222,7 @@ class WalletState extends State<Wallet> {
   Widget txnDetailWidget(BuildContext context, int index) {
     final txnDetail =
         Provider.of<WalletData>(context, listen: false).allTx[index];
-    if (txnDetail.containsKey('tags')) {
+    if (txnDetail['tags'] != null) {
       List<Widget> txn = [Text('Tags')];
 
       for (final tag in txnDetail['tags']) {
