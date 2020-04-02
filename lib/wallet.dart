@@ -141,7 +141,7 @@ class WalletState extends State<Wallet> {
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
         setState(() {});
       }
-      
+
       Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
 
       final txns = Provider.of<WalletData>(context, listen: false).allTx;
@@ -153,7 +153,7 @@ class WalletState extends State<Wallet> {
     }
   }
 
-  void _newTxns() async {
+  _newTxns() async {
     List allTxnIds = await _myWallet.allTransactionsToAddress();
     List allFromTxns = await _myWallet.allTransactionsFromAddress();
     final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
@@ -169,7 +169,7 @@ class WalletState extends State<Wallet> {
     }
   }
 
-  void _pendingTxns() async {
+  _pendingTxns() async {
     var allTx = Provider.of<WalletData>(context, listen: false).allTx;
     final pendingTx = allTx.where((txn) => (txn['status'] == 'pending'));
     List<dynamic> finalTx =
@@ -180,7 +180,7 @@ class WalletState extends State<Wallet> {
         finalTx.add(txnDetail);
       } catch (__) {
         debugPrint('Error loading transaction: $__');
-        finalTx.add({'id':txn['id'], 'status':'pending'});
+        finalTx.add({'id': txn['id'], 'status': 'pending'});
       }
     }
     Provider.of<WalletData>(context, listen: false).setTxs(finalTx);
@@ -257,8 +257,8 @@ class WalletState extends State<Wallet> {
         for (final tag in txnDetail['tags']) {
           txn.add(Row(
             children: <Widget>[
-              Expanded(child:Text('Name: ${tag['name']}')),
-              Expanded(child:Text('Name: ${tag['value']}'))
+              Expanded(child: Text('Name: ${tag['name']}')),
+              Expanded(child: Text('Name: ${tag['value']}'))
             ],
           ));
         }
@@ -308,12 +308,19 @@ class WalletState extends State<Wallet> {
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
-                  : ListView.builder(
-                      itemBuilder: (BuildContext context, int index) =>
-                          txnDetailWidget(context, index),
-                      itemCount: Provider.of<WalletData>(context, listen: true)
-                          .allTx
-                          .length),
+                  : RefreshIndicator(
+                      child: ListView.builder(
+                          itemBuilder: (BuildContext context, int index) =>
+                              txnDetailWidget(context, index),
+                          itemCount:
+                              Provider.of<WalletData>(context, listen: true)
+                                  .allTx
+                                  .length),
+                      onRefresh: () async {
+                        _newTxns();
+                        _pendingTxns();
+                        await Future.delayed(const Duration(seconds: 1));
+                      }),
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
