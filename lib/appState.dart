@@ -47,4 +47,8 @@ class WalletData extends ChangeNotifier {
     _allTxIds.add(txn['id']);
     notifyListeners();
   }
+
+  void deleteTx(dynamic txId){
+    _allTx.remove(txId);
+  }
 }

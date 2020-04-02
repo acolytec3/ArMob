@@ -50,21 +50,21 @@ class WalletState extends State<Wallet> {
       }
 
       final txns = await storage.read(key: 'txHistory');
-      
+
       if (txns != null) {
         debugPrint('Txns retrieved: $txns', wrapWidth: 1000);
         try {
-          final allTx = json.decode(txns);
+          final allTx = jsonDecode(txns);
           Provider.of<WalletData>(context, listen: false).setTxs(allTx);
           setState(() {});
           _newTxns();
+          _pendingTxns();
         } catch (__) {
           debugPrint('Error loading transactions: $__');
           _loadAllTxns();
         }
-      }
-      else {
-        debugPrint ('No tx found in history');
+      } else {
+        debugPrint('No tx found in history');
         _loadAllTxns();
       }
 
@@ -137,45 +137,15 @@ class WalletState extends State<Wallet> {
       allTxIds.addAll(allFromTxnIds);
 
       for (var i = 0; i < allTxIds.length; i++) {
-        Map<dynamic, dynamic> txnDetail =
-            await Ar.Transaction.getTransaction(allTxIds[i]);
-        if (txnDetail['target'] != null) {
-          if (txnDetail['target'] == _myWallet.address) {
-            txnDetail['to'] =
-                Provider.of<WalletData>(context, listen: false).arweaveId;
-          } else {
-            txnDetail['to'] =
-                await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
-            if (txnDetail['to'] == 'None') {
-              txnDetail['to'] = txnDetail['target'];
-            }
-          }
-        } else
-          txnDetail['to'] = 'None';
-        if (txnDetail['owner'] == _myWallet.address) {
-          ((Provider.of<WalletData>(context, listen: false).arweaveId !=
-                  'None'))
-              ? txnDetail['from'] =
-                  Provider.of<WalletData>(context, listen: false).arweaveId
-              : txnDetail['from'] = _myWallet.address;
-        } else {
-          txnDetail['from'] =
-              await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
-          if (txnDetail['from'] == 'None') {
-            txnDetail['from'] = txnDetail['owner'];
-          }
-        }
-
+        final txnDetail = await formTxn(allTxIds[i]);
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
         setState(() {});
-        
       }
+      
       Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
-      storage.write(
-          key: 'txHistory',
-          value: jsonEncode(Provider.of<WalletData>(context, listen: false)
-              .allTx
-              .toString()));
+
+      final txns = Provider.of<WalletData>(context, listen: false).allTx;
+      storage.write(key: 'txHistory', value: jsonEncode(txns));
       storage.write(key: 'txIds', value: jsonEncode(allTxIds).toString());
       debugPrint('Wrote all txns to storage');
     } catch (__) {
@@ -188,15 +158,31 @@ class WalletState extends State<Wallet> {
     List allFromTxns = await _myWallet.allTransactionsFromAddress();
     final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
     allTxnIds.addAll(allFromTxns);
-    List newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
+    final newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
     if (newTxnIds.length > 0) {
       debugPrint(newTxnIds.toString());
-      for (var i = 0; i < newTxnIds.length; i++) {
-        final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
+      for (var txn in newTxnIds) {
+        final txnDetail = await formTxn(txn);
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       }
       setState(() {});
     }
+  }
+
+  void _pendingTxns() async {
+    var allTx = Provider.of<WalletData>(context, listen: false).allTx;
+    final pendingTx = allTx.where((txn) => (txn['status'] == 'pending'));
+    List<dynamic> finalTx =
+        allTx.where((txn) => (txn['status'] != 'pending')).toList();
+    for (var txn in pendingTx) {
+      try {
+        final txnDetail = await formTxn(txn['id']);
+        finalTx.add(txnDetail);
+      } catch (__) {
+        debugPrint('Error loading transaction: $__');
+      }
+    }
+    Provider.of<WalletData>(context, listen: false).setTxs(finalTx);
   }
 
   Widget dataTransactionItem(transaction) {
@@ -229,13 +215,41 @@ class WalletState extends State<Wallet> {
     return txnList;
   }
 
+  dynamic formTxn(String txId) async {
+    Map<dynamic, dynamic> txnDetail = await Ar.Transaction.getTransaction(txId);
+    if (txnDetail['target'] != null) {
+      if (txnDetail['target'] == _myWallet.address) {
+        txnDetail['to'] =
+            Provider.of<WalletData>(context, listen: false).arweaveId;
+      } else {
+        txnDetail['to'] =
+            await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
+        if (txnDetail['to'] == 'None') {
+          txnDetail['to'] = txnDetail['target'];
+        }
+      }
+    } else
+      txnDetail['to'] = 'None';
+    if (txnDetail['owner'] == _myWallet.address) {
+      ((Provider.of<WalletData>(context, listen: false).arweaveId != 'None'))
+          ? txnDetail['from'] =
+              Provider.of<WalletData>(context, listen: false).arweaveId
+          : txnDetail['from'] = _myWallet.address;
+    } else {
+      txnDetail['from'] =
+          await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
+      if (txnDetail['from'] == 'None') {
+        txnDetail['from'] = txnDetail['owner'];
+      }
+    }
+    return txnDetail;
+  }
+
   Widget txnDetailWidget(BuildContext context, int index) {
     final txnDetail =
         Provider.of<WalletData>(context, listen: false).allTx[index];
     List<Widget> txn;
     if (txnDetail['status'] != 'pending') {
-      
-
       if (txnDetail['tags'] != null) {
         txn = [Text('Tags')];
         for (final tag in txnDetail['tags']) {
@@ -246,7 +260,8 @@ class WalletState extends State<Wallet> {
             ],
           ));
         }
-      } else txn = [Text('No tags')];
+      } else
+        txn = [Text('No tags')];
       return ExpansionTile(
           title: ListTile(
               title: Text(txnDetail['id']),
@@ -272,8 +287,7 @@ class WalletState extends State<Wallet> {
           title: Text(txnDetail['id']),
           subtitle: Text('Transaction pending'),
           onLongPress: () {
-            widget.notifyParent(
-                1, "https://arweave.net/tx/${txnDetail['id']}");
+            widget.notifyParent(1, "https://arweave.net/tx/${txnDetail['id']}");
           });
     }
   }
