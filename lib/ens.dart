@@ -3,7 +3,7 @@ import 'package:http/http.dart';
 import 'package:web3dart/crypto.dart';
 import 'dart:typed_data';
 import 'dart:async';
-
+import 'package:flutter/material.dart';
 
 const rpcURL = "https://ropsten.infura.io/v3/c4809a978c5b48c8a5b8fdc9133cef42";
 var httpClient = new Client();
@@ -33,10 +33,10 @@ Future<String> resolve(namehash) async {
         contract: resolverContract,
         function: getText,
         params: [namehash, "url"]);
-    print(url);
+    debugPrint(url.toString());
     return url[0].toString();
   } else
-    print("Resolver doesn't support Text/url record resolution");
+    debugPrint("Resolver doesn't support Text/url record resolution");
   return ("URL resolution not supported");
 }
 

@@ -71,12 +71,12 @@ _content = utf8.encode(file.readAsStringSync());
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      print('Signed transaction is: $signedTransaction');
+      debugPrint('Signed transaction is: $signedTransaction');
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content, tags: _tags);
       
-      print('Transaction status: ${result[0].statusCode}');
+      debugPrint('Transaction status: ${result[0].statusCode}');
       try {
         _transactionStatus = result[0].statusCode.toString();
       } catch (__) {
@@ -84,13 +84,14 @@ _content = utf8.encode(file.readAsStringSync());
       }
       if (_transactionStatus == '200') {
         _transactionResult = 'Transaction ID - ${result[1]} - has been submitted!';
-         Provider.of<WalletData>(context, listen: false).addTxId(result[1]);
+        final txnDetail = {'id':result[1], 'status':'pending'};
+         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       } else {
         _transactionResult = 'Transaction could not be submitted.';
       }
       setState(() {});
     } on PlatformException catch (e) {
-      print('Platform error occurred: $e');
+      debugPrint('Platform error occurred: $e');
     }
     await Future.delayed(const Duration(seconds: 3));
     Navigator.pop(context);

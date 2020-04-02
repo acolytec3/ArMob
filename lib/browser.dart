@@ -56,13 +56,13 @@ class WebViewContainerState extends State<WebViewContainer> {
                     callback: (args) {
                       loginFunction = args[0];
                       signFunction = args[1];
-                      print('ArMob found a signing function!');
-                      print(args.toString());
+                      debugPrint('ArMob found a signing function!');
+                      debugPrint(args.toString());
                       return "Still seeing you";
                     });
               },
               onConsoleMessage: (InAppWebViewController controller, message) {
-                print("Message from javascript - ${message.message}");
+                debugPrint("Message from javascript - ${message.message}");
               },
               onProgressChanged:
                   (InAppWebViewController controller, int progress) {
@@ -118,7 +118,7 @@ class BrowserState extends State<Browser> {
           final url = 'https://arweave.net/' + arTx.toString();
           webviewKey.currentState.webViewController.loadUrl(url: url);
         } catch (__) {
-          print("Name could not be resolved");
+          debugPrint("Name could not be resolved");
         }
       } else {
         webviewKey.currentState.webViewController

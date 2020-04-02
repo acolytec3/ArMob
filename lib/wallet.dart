@@ -22,8 +22,6 @@ class WalletState extends State<Wallet> {
   Ar.Wallet _myWallet;
   var _balance;
   List _dataTxHistory;
-  List<dynamic> _allTx = [];
-  List _allTxIds = [];
 
   //App components
   final storage = FlutterSecureStorage();
@@ -52,15 +50,33 @@ class WalletState extends State<Wallet> {
       }
 
       final txns = await storage.read(key: 'txHistory');
+
       if (txns != null) {
-        _allTx = json.decode(txns);
+        debugPrint('Txns retrieved: $txns', wrapWidth: 1000);
+        try {
+          final allTx = jsonDecode(txns);
+          Provider.of<WalletData>(context, listen: false).setTxs(allTx);
+          setState(() {});
+          _newTxns();
+          _pendingTxns();
+        } catch (__) {
+          debugPrint('Error loading transactions: $__');
+          _loadAllTxns();
+        }
+      } else {
+        debugPrint('No tx found in history');
+        _loadAllTxns();
       }
 
       final txIds = await storage.read(key: 'txIds');
       if (txIds != null) {
-        _allTxIds = json.decode(txIds);
+        try {
+          final allTxIds = json.decode(txIds);
+          Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
+        } catch (__) {
+          debugPrint('Error loading transaction IDs: $__');
+        }
       }
-      
     }
 
     loading = false;
@@ -87,18 +103,19 @@ class WalletState extends State<Wallet> {
           .updateWallet(_walletString, _balance);
       setState(() {});
     } catch (__) {
-      print("Invalid Wallet File");
+      debugPrint("Error encountered - $__");
     }
   }
 
   void _removeWallet() async {
     await storage.deleteAll();
     Provider.of<WalletData>(context, listen: false).updateWallet(null, 0);
-    Provider.of<WalletData>(context, listen: true).updateArweaveId('Wallet');
+    Provider.of<WalletData>(context, listen: false).updateArweaveId('Wallet');
+    Provider.of<WalletData>(context, listen: false).setTxs([]);
+    Provider.of<WalletData>(context, listen: false).setTxIds([]);
     _balance = 0;
     _dataTxHistory = null;
     _myWallet = null;
-    _allTx = null;
     setState(() {});
   }
 
@@ -108,77 +125,66 @@ class WalletState extends State<Wallet> {
       _dataTxHistory = dataTxHistory;
       setState(() {});
     } catch (__) {
-      print('Error loading data tx history: $__');
+      debugPrint('Error loading data tx history: $__');
     }
   }
 
   void _loadAllTxns() async {
-    // If no transactions are found, pull all transactions from Arweave
-    if (_allTx == null) {
-      try {
-        List allToTxns = await _myWallet.allTransactionsToAddress();
-        List allFromTxns = await _myWallet.allTransactionsFromAddress();
-        _allTxIds = allToTxns;
-        _allTxIds.addAll(allFromTxns);
-        _allTx = _allTxIds.map((txId) => {'id': txId}).toList();
-        setState(() {});
-        for (var i = 0; i < _allTx.length; i++) {
-          Map<dynamic, dynamic> txnDetail =
-              await Ar.Transaction.getTransaction(_allTx[i]['id']);
-          if (txnDetail['target'] != null) {
-            if (txnDetail['target'] == _myWallet.address) {
-              txnDetail['to'] = Provider.of<WalletData>(context, listen: false).arweaveId;
-            }
-            else {
-              txnDetail['to'] = await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
-              if (txnDetail['to'] == 'None') {
-                txnDetail['to'] = txnDetail['target'];
-              }
-            }
-          }
-          else txnDetail['to'] = 'None';
-          if (txnDetail['owner'] == _myWallet.address){
-              if (Provider.of<WalletData>(context, listen: false).arweaveId != 'None') {
-                txnDetail['from'] = Provider.of<WalletData>(context, listen: false).arweaveId;
-              }
-              else txnDetail['from'] = _myWallet.address;
-            }
-            else {
-              txnDetail['from'] = await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
-              if (txnDetail['from'] == 'None') {
-                txnDetail['from'] = txnDetail['owner'];
-              }
-            }
+    try {
+      List allToTxnIds = await _myWallet.allTransactionsToAddress();
+      List allFromTxnIds = await _myWallet.allTransactionsFromAddress();
+      final allTxIds = allToTxnIds;
+      allTxIds.addAll(allFromTxnIds);
 
-          _allTx[i] = txnDetail;
-          setState(() {});
-        }
-        storage.write(key: 'txHistory', value: jsonEncode(_allTx).toString());
-        storage.write(key: 'txIds', value: jsonEncode(_allTxIds).toString());
-        print('Wrote all txns to storage');
+      for (var i = 0; i < allTxIds.length; i++) {
+        final txnDetail = await formTxn(allTxIds[i]);
+        Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+        setState(() {});
+      }
+      
+      Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
+
+      final txns = Provider.of<WalletData>(context, listen: false).allTx;
+      storage.write(key: 'txHistory', value: jsonEncode(txns));
+      storage.write(key: 'txIds', value: jsonEncode(allTxIds).toString());
+      debugPrint('Wrote all txns to storage');
+    } catch (__) {
+      debugPrint("Error loading tx history: $__");
+    }
+  }
+
+  void _newTxns() async {
+    List allTxnIds = await _myWallet.allTransactionsToAddress();
+    List allFromTxns = await _myWallet.allTransactionsFromAddress();
+    final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
+    allTxnIds.addAll(allFromTxns);
+    final newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
+    if (newTxnIds.length > 0) {
+      debugPrint(newTxnIds.toString());
+      for (var txn in newTxnIds) {
+        final txnDetail = await formTxn(txn);
+        Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+      }
+      setState(() {});
+    }
+  }
+
+  void _pendingTxns() async {
+    var allTx = Provider.of<WalletData>(context, listen: false).allTx;
+    final pendingTx = allTx.where((txn) => (txn['status'] == 'pending'));
+    List<dynamic> finalTx =
+        allTx.where((txn) => (txn['status'] != 'pending')).toList();
+    for (var txn in pendingTx) {
+      try {
+        final txnDetail = await formTxn(txn['id']);
+        finalTx.add(txnDetail);
       } catch (__) {
-        print("Error loading tx history: $__");
+        debugPrint('Error loading transaction: $__');
+        finalTx.add({'id':txn['id'], 'status':'pending'});
       }
     }
-    // Check for any new transactions and add to txnList if found
-    else {
-      List allTxns = await _myWallet.allTransactionsToAddress();
-      List allFromTxns = await _myWallet.allTransactionsFromAddress();
-      allTxns.addAll(allFromTxns);
-      List newTxnIds = allTxns.where((txId) => !(_allTxIds.contains(txId)));
-      if (newTxnIds.length > 0) {
-        print(newTxnIds.toString());
-        _allTxIds.addAll(newTxnIds);
-        setState(() {});
-        for (var i = 0; i < newTxnIds.length; i++) {
-          final txnDetail = await Ar.Transaction.getTransaction(newTxnIds[i]);
-          _allTx.add(txnDetail);
-        }
-        setState(() {});
-      }
-    }
-    Provider.of<WalletData>(context, listen: false).setTxs(_allTx);
-    Provider.of<WalletData>(context, listen: false).setTxIds(_allTxIds);
+    Provider.of<WalletData>(context, listen: false).setTxs(finalTx);
+    setState(() {});
   }
 
   Widget dataTransactionItem(transaction) {
@@ -205,63 +211,87 @@ class WalletState extends State<Wallet> {
         txnList.add(dataTransactionItem(txn));
       }
     } catch (__) {
-      print('Error retrieving transactions: $__');
+      debugPrint('Error retrieving transactions: $__');
       txnList.add(Text('No transactions retrieved'));
     }
     return txnList;
   }
 
-  List<Widget> buildTxHistory() {
-    var txnList = <Widget>[];
-    try {
-      for (var x = 0; x < _allTx.length; x++) {
-        if (_allTx[x].containsKey('reward')) {
-          List<Widget> txn = [Text('Tags')];
-
-          for (final tag in _allTx[x]['tags']) {
-            txn.add(Row(
-              children: <Widget>[
-                Text('Name: ${tag['name']}'),
-                Text('Name: ${tag['value']}')
-              ],
-            ));
-          }
-
-          txnList.add(ExpansionTile(
-              title: ListTile(
-                  title: Text(_allTx[x]['id']),
-                  onLongPress: () {
-                    widget.notifyParent(1,
-                        "https://viewblock.io/arweave/tx/${_allTx[x]['id']}");
-                  }),
-              subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Amount ${Ar.winstonToAr(_allTx[x]['quantity'])} AR'),
-                    Text(
-                        'Fee: ${Ar.winstonToAr(_allTx[x]['reward']).toString()} AR'),
-                    Text('From: ${_allTx[x]['from']}'),
-                    Text('To: ${_allTx[x]['to']}')
-                  ]),
-              initiallyExpanded: false,
-              children: <Widget>[
-                Column(
-                    children: txn, crossAxisAlignment: CrossAxisAlignment.start)
-              ]));
-        } else {
-          txnList.add(ListTile(
-              title: Text(_allTx[x]['id']),
-              onLongPress: () {
-                widget.notifyParent(
-                    1, "https://viewblock.io/arweave/tx/${_allTx[x]['id']}");
-              }));
+  dynamic formTxn(String txId) async {
+    Map<dynamic, dynamic> txnDetail = await Ar.Transaction.getTransaction(txId);
+    if (txnDetail['target'] != null) {
+      if (txnDetail['target'] == _myWallet.address) {
+        txnDetail['to'] =
+            Provider.of<WalletData>(context, listen: false).arweaveId;
+      } else {
+        txnDetail['to'] =
+            await Ar.Transaction.arweaveIdLookup(txnDetail['target']);
+        if (txnDetail['to'] == 'None') {
+          txnDetail['to'] = txnDetail['target'];
         }
       }
-    } catch (__) {
-      print('Error retrieving transactions: $__');
-      txnList.add(Text('No transactions retrieved'));
+    } else
+      txnDetail['to'] = 'None';
+    if (txnDetail['owner'] == _myWallet.address) {
+      ((Provider.of<WalletData>(context, listen: false).arweaveId != 'None'))
+          ? txnDetail['from'] =
+              Provider.of<WalletData>(context, listen: false).arweaveId
+          : txnDetail['from'] = _myWallet.address;
+    } else {
+      txnDetail['from'] =
+          await Ar.Transaction.arweaveIdLookup(txnDetail['owner']);
+      if (txnDetail['from'] == 'None') {
+        txnDetail['from'] = txnDetail['owner'];
+      }
     }
-    return txnList;
+    return txnDetail;
+  }
+
+  Widget txnDetailWidget(BuildContext context, int index) {
+    final txnDetail =
+        Provider.of<WalletData>(context, listen: false).allTx[index];
+    List<Widget> txn;
+    if (txnDetail['status'] != 'pending') {
+      if (txnDetail['tags'] != null) {
+        txn = [Text('Tags')];
+        for (final tag in txnDetail['tags']) {
+          txn.add(Row(
+            children: <Widget>[
+              Expanded(child:Text('Name: ${tag['name']}')),
+              Expanded(child:Text('Name: ${tag['value']}'))
+            ],
+          ));
+        }
+      } else
+        txn = [Text('No tags')];
+      return ExpansionTile(
+          title: ListTile(
+              title: Text(txnDetail['id']),
+              onLongPress: () {
+                widget.notifyParent(
+                    1, "https://viewblock.io/arweave/tx/${txnDetail['id']}");
+              }),
+          subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Amount ${Ar.winstonToAr(txnDetail['quantity'])} AR'),
+                Text(
+                    'Fee: ${Ar.winstonToAr(txnDetail['reward']).toString()} AR'),
+                Text('From: ${txnDetail['from']}'),
+                Text('To: ${txnDetail['to']}')
+              ]),
+          initiallyExpanded: false,
+          children: <Widget>[
+            Column(children: txn, crossAxisAlignment: CrossAxisAlignment.start)
+          ]);
+    } else {
+      return ListTile(
+          title: Text(txnDetail['id']),
+          subtitle: Text('Transaction pending'),
+          onLongPress: () {
+            widget.notifyParent(1, "https://arweave.net/tx/${txnDetail['id']}");
+          });
+    }
   }
 
   @override
@@ -278,7 +308,12 @@ class WalletState extends State<Wallet> {
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
-                  : ListView(children: buildTxHistory()),
+                  : ListView.builder(
+                      itemBuilder: (BuildContext context, int index) =>
+                          txnDetailWidget(context, index),
+                      itemCount: Provider.of<WalletData>(context, listen: true)
+                          .allTx
+                          .length),
               (Provider.of<WalletData>(context, listen: true).walletString ==
                       null)
                   ? (Center(child: Text('Open wallet to see transactions')))
