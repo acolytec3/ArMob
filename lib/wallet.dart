@@ -180,9 +180,11 @@ class WalletState extends State<Wallet> {
         finalTx.add(txnDetail);
       } catch (__) {
         debugPrint('Error loading transaction: $__');
+        finalTx.add({'id':txn['id'], 'status':'pending'});
       }
     }
     Provider.of<WalletData>(context, listen: false).setTxs(finalTx);
+    setState(() {});
   }
 
   Widget dataTransactionItem(transaction) {
@@ -255,8 +257,8 @@ class WalletState extends State<Wallet> {
         for (final tag in txnDetail['tags']) {
           txn.add(Row(
             children: <Widget>[
-              Text('Name: ${tag['name']}'),
-              Text('Name: ${tag['value']}')
+              Expanded(child:Text('Name: ${tag['name']}')),
+              Expanded(child:Text('Name: ${tag['value']}'))
             ],
           ));
         }
