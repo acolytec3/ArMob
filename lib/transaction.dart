@@ -22,8 +22,10 @@ class TransactionState extends State<Transaction> {
   String _transactionCost = '0';
   List<int> _content;
   List _tags = [];
+  String _toAddress;
   String _transactionStatus;
   String _transactionResult;
+  String _amount;
 
   static const platform = const MethodChannel('armob.dev/signer');
 
@@ -31,14 +33,13 @@ class TransactionState extends State<Transaction> {
     final file = await FilePicker.getFile();
     _fileName = (file.path).split('/').last;
     try {
-_content = utf8.encode(file.readAsStringSync());
-    } catch (__)
-{
-   _content = file.readAsBytesSync();
-} 
-    
+      _content = utf8.encode(file.readAsStringSync());
+    } catch (__) {
+      _content = file.readAsBytesSync();
+    }
+
     final contentType = mime(_fileName);
-    _transactionCost = await Ar.Transaction.transactionPrice(numBytes: _content.length);
+    _calculateTxCost(numBytes: _content.length, targetAddress: _toAddress);
     _tags = [
       {
         'name': 'Content-Type',
@@ -55,6 +56,18 @@ _content = utf8.encode(file.readAsStringSync());
     return base64Url
         .decode(encoded)
         .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
+  }
+
+  void _calculateTxCost(
+      {int numBytes = 0, String data, String targetAddress = ''}) async {
+    _transactionCost = await Ar.Transaction.transactionPrice(
+        numBytes: numBytes, data: data, targetAddress: targetAddress);
+    if (_amount != null) {
+      final totalCost =
+          Ar.winstonToAr(_transactionCost) + double.parse(_amount);
+      _transactionCost = Ar.arToWinston(totalCost);
+    }
+    setState(() {});
   }
 
   void _submitTransaction() async {
@@ -75,7 +88,7 @@ _content = utf8.encode(file.readAsStringSync());
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content, tags: _tags);
-      
+
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
         _transactionStatus = result[0].statusCode.toString();
@@ -83,9 +96,10 @@ _content = utf8.encode(file.readAsStringSync());
         _transactionStatus = '500';
       }
       if (_transactionStatus == '200') {
-        _transactionResult = 'Transaction ID - ${result[1]} - has been submitted!';
-        final txnDetail = {'id':result[1], 'status':'pending'};
-         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+        _transactionResult =
+            'Transaction ID - ${result[1]} - has been submitted!';
+        final txnDetail = {'id': result[1], 'status': 'pending'};
+        Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       } else {
         _transactionResult = 'Transaction could not be submitted.';
       }
@@ -131,6 +145,38 @@ _content = utf8.encode(file.readAsStringSync());
                   child: (_content != null)
                       ? ListView(children: tagList())
                       : Text('No content yet')),
+              Padding(
+                  child: (_toAddress == null)
+                      ? TextField(
+                          onSubmitted: (String value) {
+                            _toAddress = value;
+                            _calculateTxCost(targetAddress: _toAddress);
+                          },
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'To',
+                          ))
+                      : Row(children: <Widget>[
+                          Text('To: '),
+                          Expanded(child: Text(_toAddress))
+                        ]),
+                  padding: const EdgeInsets.all(20.0)),
+              Padding(
+                  child: (_amount == null)
+                      ? TextField(
+                          onSubmitted: (String value) {
+                            _amount = value; _calculateTxCost();
+                            setState(() {});
+                          },
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Amount',
+                          ))
+                      : Row(children: <Widget>[
+                          Text('Amount: '),
+                          Expanded(child: Text(_amount))
+                        ]),
+                  padding: const EdgeInsets.all(20.0)),
               ButtonBar(
                   alignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
