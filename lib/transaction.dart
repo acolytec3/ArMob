@@ -22,10 +22,11 @@ class TransactionState extends State<Transaction> {
   String _transactionCost = '0';
   List<int> _content;
   List _tags = [];
-  String _toAddress;
+  String _toAddress = '';
   String _transactionStatus;
   String _transactionResult;
   String _amount;
+  String _displayTxCost = '0';
 
   static const platform = const MethodChannel('armob.dev/signer');
 
@@ -65,8 +66,9 @@ class TransactionState extends State<Transaction> {
     if (_amount != null) {
       final totalCost =
           Ar.winstonToAr(_transactionCost) + double.parse(_amount);
-      _transactionCost = Ar.arToWinston(totalCost);
+      _displayTxCost = Ar.arToWinston(totalCost);
     }
+    else _displayTxCost = _transactionCost;
     setState(() {});
   }
 
@@ -75,7 +77,7 @@ class TransactionState extends State<Transaction> {
 
     List<int> rawTransaction = widget.wallet.createTransaction(
         txAnchor, _transactionCost,
-        data: _content, tags: _tags);
+        data: _content, tags: _tags, targetAddress: _toAddress, quantity: _amount);
 
     try {
       List<int> signedTransaction =
@@ -136,7 +138,7 @@ class TransactionState extends State<Transaction> {
                     child: Text('Transaction Cost'),
                     padding: const EdgeInsets.all(20.0)),
                 Padding(
-                    child: Text((Ar.winstonToAr(_transactionCost)).toString()),
+                    child: Text((Ar.winstonToAr(_displayTxCost)).toString()),
                     padding: const EdgeInsets.all(20.0))
               ]),
               Text('Transaction Tags',
@@ -146,7 +148,7 @@ class TransactionState extends State<Transaction> {
                       ? ListView(children: tagList())
                       : Text('No content yet')),
               Padding(
-                  child: (_toAddress == null)
+                  child: (_toAddress == '')
                       ? TextField(
                           onSubmitted: (String value) {
                             _toAddress = value;
