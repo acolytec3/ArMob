@@ -77,11 +77,11 @@ _content = utf8.encode(file.readAsStringSync());
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
       print('Signed transaction is: ${base64.encode(signedTransaction)}');
-      final rsaSignature = await RSA.signPSS(base64.encode(rawTransaction), RSAHash.sha256, RSASaltLength.equalsHash, rsaPrivateKey);
+      final rsaSignature = await RSA.signPSS(rawTransaction, RSAHash.sha256, RSASaltLength.equalsHash, rsaPrivateKey);
       print('RSA signed tranasaction = ${(rsaSignature)}');
 
       final result = await widget.wallet.postTransaction(
-          base64.decode(rsaSignature), txAnchor, _transactionCost,
+          rsaSignature, txAnchor, _transactionCost,
           data: _content, tags: _tags);
       print(result.body.toString());
       print('Transaction status: ${result.statusCode}');
