@@ -86,10 +86,10 @@ class TransactionState extends State<Transaction> {
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      debugPrint('Signed transaction is: $signedTransaction');
+      debugPrint('Signed transaction is: $signedTransaction', wrapWidth:1000);
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
-          data: _content, tags: _tags);
+          data: _content, tags: _tags, quantity: Ar.arToWinston(double.parse(_amount)), targetAddress: _toAddress);
 
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
@@ -192,7 +192,7 @@ class TransactionState extends State<Transaction> {
                       children: <Widget>[
                         IconButton(
                           icon: Icon(Icons.send),
-                          onPressed: (_fileName != null)
+                          onPressed: ((_fileName != null) || (_amount != null))
                               ? () => _submitTransaction()
                               : null,
                         ),
