@@ -144,10 +144,10 @@ packages:
   fast_rsa:
     dependency: "direct main"
     description:
-      path: "../flutter-rsa"
-      relative: true
-    source: path
-    version: "1.0.0"
+      name: fast_rsa
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.1"
   file_picker:
     dependency: "direct main"
     description:

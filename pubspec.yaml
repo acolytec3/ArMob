@@ -34,8 +34,8 @@ dependencies:
   flutter_secure_storage: ^3.3.1
   mime_type: ^0.2.5
   flutter_speed_dial: ^1.2.5
-  fast_rsa:
-    path: ../flutter-rsa/
+  fast_rsa: ^1.0.1
+
 
 dev_dependencies:
   flutter_test:
