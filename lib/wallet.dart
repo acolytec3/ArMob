@@ -329,16 +329,25 @@ class WalletState extends State<Wallet> {
             floatingActionButton: (_myWallet != null)
                 ? SpeedDial(animatedIcon: AnimatedIcons.view_list, children: [
                     (SpeedDialChild(
-                        child: Icon(Icons.attach_money),
+                        child: Icon(Icons.close),
                         label: "Close Wallet",
                         onTap: () => _removeWallet())),
                     SpeedDialChild(
-                        child: Icon(Icons.send),
+                        child: Icon(Icons.cloud_upload),
                         label: 'Archive File',
                         onTap: () {
                           Route route = MaterialPageRoute(
                               builder: (context) =>
-                                  Transaction(wallet: _myWallet));
+                                  Transaction(wallet: _myWallet, transactionType: 'data'));
+                          Navigator.push(context, route);
+                        }),
+                                            SpeedDialChild(
+                        child: Icon(Icons.attach_money),
+                        label: 'Send AR',
+                        onTap: () {
+                          Route route = MaterialPageRoute(
+                              builder: (context) =>
+                                  Transaction(wallet: _myWallet, transactionType: 'AR'));
                           Navigator.push(context, route);
                         })
                   ])

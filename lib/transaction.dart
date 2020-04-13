@@ -10,8 +10,10 @@ import 'package:arweave/appState.dart';
 
 class Transaction extends StatefulWidget {
   final Ar.Wallet wallet;
+  final transactionType;
 
-  const Transaction({Key key, this.wallet}) : super(key: key);
+  const Transaction({Key key, this.wallet, this.transactionType})
+      : super(key: key);
 
   @override
   TransactionState createState() => TransactionState();
@@ -25,8 +27,9 @@ class TransactionState extends State<Transaction> {
   String _toAddress = '';
   String _transactionStatus;
   String _transactionResult;
-  String _amount;
+  String _amount = '';
   String _displayTxCost = '0';
+  final _formKey = GlobalKey<FormState>();
 
   static const platform = const MethodChannel('armob.dev/signer');
 
@@ -67,8 +70,8 @@ class TransactionState extends State<Transaction> {
       final totalCost =
           Ar.winstonToAr(_transactionCost) + double.parse(_amount);
       _displayTxCost = Ar.arToWinston(totalCost);
-    }
-    else _displayTxCost = _transactionCost;
+    } else
+      _displayTxCost = _transactionCost;
     setState(() {});
   }
 
@@ -77,7 +80,10 @@ class TransactionState extends State<Transaction> {
 
     List<int> rawTransaction = widget.wallet.createTransaction(
         txAnchor, _transactionCost,
-        data: _content, tags: _tags, targetAddress: _toAddress, quantity: Ar.arToWinston(double.parse(_amount)));
+        data: _content,
+        tags: _tags,
+        targetAddress: _toAddress,
+        quantity: Ar.arToWinston(double.parse(_amount)));
 
     try {
       List<int> signedTransaction =
@@ -86,10 +92,13 @@ class TransactionState extends State<Transaction> {
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      debugPrint('Signed transaction is: $signedTransaction', wrapWidth:1000);
+      debugPrint('Signed transaction is: $signedTransaction', wrapWidth: 1000);
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
-          data: _content, tags: _tags, quantity: Ar.arToWinston(double.parse(_amount)), targetAddress: _toAddress);
+          data: _content,
+          tags: _tags,
+          quantity: Ar.arToWinston(double.parse(_amount)),
+          targetAddress: _toAddress);
 
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
@@ -127,6 +136,74 @@ class TransactionState extends State<Transaction> {
     return tagList;
   }
 
+  Widget showARForm() {
+    if (widget.transactionType == 'AR') {
+      return (_toAddress == '')
+          ? Form(
+              key: _formKey,
+              child: Column(children: [
+                Padding(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'To',
+                      ),
+                      validator: (value) {
+                        if (value.isEmpty) {
+                          return 'Address cannot be blank';
+                        }
+                        return null;
+                      },
+                      onSaved: (String value) {
+                        _toAddress = value;
+                        _calculateTxCost(targetAddress: _toAddress);
+                      },
+                    ),
+                    padding: const EdgeInsets.all(20.0)),
+                Padding(
+                    child: TextFormField(
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Amount',
+                        ),
+                        validator: (value) {
+                          if (value.isEmpty) {
+                            return 'Amount cannot be 0';
+                          }
+                          return null;
+                        },
+                        onSaved: (String value) {
+                          _amount = value;
+                          _calculateTxCost();
+                          setState(() {});
+                        }),
+                    padding: const EdgeInsets.all(20.0)),
+                Column(children: [
+                  IconButton(
+                      icon: Icon(Icons.check),
+                      onPressed: () {
+                        if (_formKey.currentState.validate()) {
+                          _formKey.currentState.save();
+                        }
+                      }),
+                  Text('Add Sendee/Amount')
+                ])
+              ]))
+          : Column(children: [
+              Row(children: <Widget>[
+                Text('To: '),
+                Expanded(child: Text(_toAddress))
+              ]),
+              Row(children: <Widget>[
+                Text('Amount: '),
+                Expanded(child: Text(_amount))
+              ])
+            ]);
+    } else {
+      return Container();
+    }
+  }
+
   @override
   Widget build(context) {
     return Scaffold(
@@ -147,38 +224,7 @@ class TransactionState extends State<Transaction> {
                   child: (_content != null)
                       ? ListView(children: tagList())
                       : Text('No content yet')),
-              Padding(
-                  child: (_toAddress == '')
-                      ? TextField(
-                          onSubmitted: (String value) {
-                            _toAddress = value;
-                            _calculateTxCost(targetAddress: _toAddress);
-                          },
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'To',
-                          ))
-                      : Row(children: <Widget>[
-                          Text('To: '),
-                          Expanded(child: Text(_toAddress))
-                        ]),
-                  padding: const EdgeInsets.all(20.0)),
-              Padding(
-                  child: (_amount == null)
-                      ? TextField(
-                          onSubmitted: (String value) {
-                            _amount = value; _calculateTxCost();
-                            setState(() {});
-                          },
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Amount',
-                          ))
-                      : Row(children: <Widget>[
-                          Text('Amount: '),
-                          Expanded(child: Text(_amount))
-                        ]),
-                  padding: const EdgeInsets.all(20.0)),
+              showARForm(),
               ButtonBar(
                   alignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
