@@ -77,7 +77,7 @@ class TransactionState extends State<Transaction> {
 
     List<int> rawTransaction = widget.wallet.createTransaction(
         txAnchor, _transactionCost,
-        data: _content, tags: _tags, targetAddress: _toAddress, quantity: _amount);
+        data: _content, tags: _tags, targetAddress: _toAddress, quantity: Ar.arToWinston(double.parse(_amount)));
 
     try {
       List<int> signedTransaction =
