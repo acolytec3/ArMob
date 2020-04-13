@@ -79,7 +79,8 @@ _content = utf8.encode(file.readAsStringSync());
       print('Signed transaction is: ${base64.encode(signedTransaction)}');
       final rsaSignature = await RSA.signPSSBytes(Uint8List.fromList(rawTransaction), RSAHash.sha256, RSASaltLength.auto, rsaPrivateKey);
       print('RSA signed tranasaction = ${(rsaSignature)}');
-
+      final verifier = await RSA.verifyPSSBytes(Uint8List.fromList(rawTransaction),rsaSignature,RSAHash.sha256, RSASaltLength.auto, rsaPrivateKey);
+      print('Verification of signature: $verifier');
       final result = await widget.wallet.postTransaction(
           rsaSignature, txAnchor, _transactionCost,
           data: _content, tags: _tags);
