@@ -10,8 +10,10 @@ import 'package:arweave/appState.dart';
 
 class Transaction extends StatefulWidget {
   final Ar.Wallet wallet;
+  final transactionType;
 
-  const Transaction({Key key, this.wallet}) : super(key: key);
+  const Transaction({Key key, this.wallet, this.transactionType})
+      : super(key: key);
 
   @override
   TransactionState createState() => TransactionState();
@@ -22,8 +24,12 @@ class TransactionState extends State<Transaction> {
   String _transactionCost = '0';
   List<int> _content;
   List _tags = [];
+  String _toAddress = '';
   String _transactionStatus;
   String _transactionResult;
+  String _amount = '';
+  String _displayTxCost = '0';
+  final _formKey = GlobalKey<FormState>();
 
   static const platform = const MethodChannel('armob.dev/signer');
 
@@ -31,14 +37,13 @@ class TransactionState extends State<Transaction> {
     final file = await FilePicker.getFile();
     _fileName = (file.path).split('/').last;
     try {
-_content = utf8.encode(file.readAsStringSync());
-    } catch (__)
-{
-   _content = file.readAsBytesSync();
-} 
-    
+      _content = utf8.encode(file.readAsStringSync());
+    } catch (__) {
+      _content = file.readAsBytesSync();
+    }
+
     final contentType = mime(_fileName);
-    _transactionCost = await Ar.Transaction.transactionPrice(numBytes: _content.length);
+    _calculateTxCost(numBytes: _content.length, targetAddress: _toAddress);
     _tags = [
       {
         'name': 'Content-Type',
@@ -57,12 +62,28 @@ _content = utf8.encode(file.readAsStringSync());
         .fold(BigInt.zero, (a, b) => a * b256 + new BigInt.from(b));
   }
 
+  void _calculateTxCost(
+      {int numBytes = 0, String data, String targetAddress = ''}) async {
+    _transactionCost = await Ar.Transaction.transactionPrice(
+        numBytes: numBytes, data: data, targetAddress: targetAddress);
+    if (_amount != null) {
+      final totalCost =
+          Ar.winstonToAr(_transactionCost) + double.parse(_amount);
+      _displayTxCost = Ar.arToWinston(totalCost);
+    } else
+      _displayTxCost = _transactionCost;
+    setState(() {});
+  }
+
   void _submitTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
 
     List<int> rawTransaction = widget.wallet.createTransaction(
         txAnchor, _transactionCost,
-        data: _content, tags: _tags);
+        data: _content,
+        tags: _tags,
+        targetAddress: _toAddress,
+        quantity: Ar.arToWinston(double.parse(_amount)));
 
     try {
       List<int> signedTransaction =
@@ -71,11 +92,14 @@ _content = utf8.encode(file.readAsStringSync());
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      debugPrint('Signed transaction is: $signedTransaction');
+      debugPrint('Signed transaction is: $signedTransaction', wrapWidth: 1000);
       final result = await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
-          data: _content, tags: _tags);
-      
+          data: _content,
+          tags: _tags,
+          quantity: Ar.arToWinston(double.parse(_amount)),
+          targetAddress: _toAddress);
+
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
         _transactionStatus = result[0].statusCode.toString();
@@ -83,9 +107,10 @@ _content = utf8.encode(file.readAsStringSync());
         _transactionStatus = '500';
       }
       if (_transactionStatus == '200') {
-        _transactionResult = 'Transaction ID - ${result[1]} - has been submitted!';
-        final txnDetail = {'id':result[1], 'status':'pending'};
-         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+        _transactionResult =
+            'Transaction ID - ${result[1]} - has been submitted!';
+        final txnDetail = {'id': result[1], 'status': 'pending'};
+        Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       } else {
         _transactionResult = 'Transaction could not be submitted.';
       }
@@ -111,6 +136,74 @@ _content = utf8.encode(file.readAsStringSync());
     return tagList;
   }
 
+  Widget showARForm() {
+    if (widget.transactionType == 'AR') {
+      return (_toAddress == '')
+          ? Form(
+              key: _formKey,
+              child: Column(children: [
+                Padding(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'To',
+                      ),
+                      validator: (value) {
+                        if (value.isEmpty) {
+                          return 'Address cannot be blank';
+                        }
+                        return null;
+                      },
+                      onSaved: (String value) {
+                        _toAddress = value;
+                        _calculateTxCost(targetAddress: _toAddress);
+                      },
+                    ),
+                    padding: const EdgeInsets.all(20.0)),
+                Padding(
+                    child: TextFormField(
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Amount',
+                        ),
+                        validator: (value) {
+                          if (value.isEmpty) {
+                            return 'Amount cannot be 0';
+                          }
+                          return null;
+                        },
+                        onSaved: (String value) {
+                          _amount = value;
+                          _calculateTxCost();
+                          setState(() {});
+                        }),
+                    padding: const EdgeInsets.all(20.0)),
+                Column(children: [
+                  IconButton(
+                      icon: Icon(Icons.check),
+                      onPressed: () {
+                        if (_formKey.currentState.validate()) {
+                          _formKey.currentState.save();
+                        }
+                      }),
+                  Text('Add Sendee/Amount')
+                ])
+              ]))
+          : Column(children: [
+              Row(children: <Widget>[
+                Text('To: '),
+                Expanded(child: Text(_toAddress))
+              ]),
+              Row(children: <Widget>[
+                Text('Amount: '),
+                Expanded(child: Text(_amount))
+              ])
+            ]);
+    } else {
+      return Container();
+    }
+  }
+
   @override
   Widget build(context) {
     return Scaffold(
@@ -122,7 +215,7 @@ _content = utf8.encode(file.readAsStringSync());
                     child: Text('Transaction Cost'),
                     padding: const EdgeInsets.all(20.0)),
                 Padding(
-                    child: Text((Ar.winstonToAr(_transactionCost)).toString()),
+                    child: Text((Ar.winstonToAr(_displayTxCost)).toString()),
                     padding: const EdgeInsets.all(20.0))
               ]),
               Text('Transaction Tags',
@@ -131,6 +224,7 @@ _content = utf8.encode(file.readAsStringSync());
                   child: (_content != null)
                       ? ListView(children: tagList())
                       : Text('No content yet')),
+              showARForm(),
               ButtonBar(
                   alignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
@@ -144,7 +238,7 @@ _content = utf8.encode(file.readAsStringSync());
                       children: <Widget>[
                         IconButton(
                           icon: Icon(Icons.send),
-                          onPressed: (_fileName != null)
+                          onPressed: ((_fileName != null) || (_amount != null))
                               ? () => _submitTransaction()
                               : null,
                         ),
