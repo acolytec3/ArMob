@@ -27,7 +27,7 @@ class TransactionState extends State<Transaction> {
   String _toAddress = '';
   String _transactionStatus;
   String _transactionResult;
-  String _amount = '';
+  String _amount;
   String _displayTxCost = '0';
   final _formKey = GlobalKey<FormState>();
 
@@ -83,7 +83,7 @@ class TransactionState extends State<Transaction> {
         data: _content,
         tags: _tags,
         targetAddress: _toAddress,
-        quantity: Ar.arToWinston(double.parse(_amount)));
+        quantity: _amount);
 
     try {
       List<int> signedTransaction =
@@ -97,7 +97,7 @@ class TransactionState extends State<Transaction> {
           signedTransaction, txAnchor, _transactionCost,
           data: _content,
           tags: _tags,
-          quantity: Ar.arToWinston(double.parse(_amount)),
+          quantity: _amount,
           targetAddress: _toAddress);
 
       debugPrint('Transaction status: ${result[0].statusCode}');
