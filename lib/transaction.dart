@@ -78,12 +78,15 @@ class TransactionState extends State<Transaction> {
   void _submitTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
 
-    List<int> rawTransaction = widget.wallet.createTransaction(
+    List<int> rawTransaction = (widget.transactionType == 'AR') ? widget.wallet.createTransaction(
         txAnchor, _transactionCost,
         data: _content,
         tags: _tags,
         targetAddress: _toAddress,
-        quantity: _amount);
+        quantity: _amount) : widget.wallet.createTransaction(
+        txAnchor, _transactionCost,
+        data: _content,
+        tags: _tags);
 
     try {
       List<int> signedTransaction =
@@ -93,12 +96,16 @@ class TransactionState extends State<Transaction> {
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
       debugPrint('Signed transaction is: $signedTransaction', wrapWidth: 1000);
-      final result = await widget.wallet.postTransaction(
+      final result = (widget.transactionType == 'AR') ? await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content,
           tags: _tags,
           quantity: _amount,
-          targetAddress: _toAddress);
+          targetAddress: _toAddress) :
+          await widget.wallet.postTransaction(
+          signedTransaction, txAnchor, _transactionCost,
+          data: _content,
+          tags: _tags);
 
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
