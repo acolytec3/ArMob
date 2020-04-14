@@ -83,10 +83,9 @@ class TransactionState extends State<Transaction> {
         data: _content,
         tags: _tags,
         targetAddress: _toAddress,
-        quantity: _amount) : widget.wallet.createTransaction(
+        quantity: _amount) :  widget.wallet.createTransaction(
         txAnchor, _transactionCost,
-        data: _content,
-        tags: _tags);
+        data: _content, tags: _tags);
 
     try {
       List<int> signedTransaction =
@@ -104,8 +103,7 @@ class TransactionState extends State<Transaction> {
           targetAddress: _toAddress) :
           await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
-          data: _content,
-          tags: _tags);
+          data: _content, tags: _tags);
 
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
