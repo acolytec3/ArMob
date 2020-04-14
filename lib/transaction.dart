@@ -27,7 +27,7 @@ class TransactionState extends State<Transaction> {
   String _toAddress = '';
   String _transactionStatus;
   String _transactionResult;
-  String _amount = '';
+  String _amount;
   String _displayTxCost = '0';
   final _formKey = GlobalKey<FormState>();
 
@@ -78,7 +78,12 @@ class TransactionState extends State<Transaction> {
   void _submitTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
 
-    List<int> rawTransaction = widget.wallet.createTransaction(
+    List<int> rawTransaction = (widget.transactionType == 'AR') ? widget.wallet.createTransaction(
+        txAnchor, _transactionCost,
+        data: _content,
+        tags: _tags,
+        targetAddress: _toAddress,
+        quantity: Ar.arToWinston(double.parse(_amount))) :  widget.wallet.createTransaction(
         txAnchor, _transactionCost,
         data: _content,
         tags: _tags,
@@ -92,13 +97,16 @@ class TransactionState extends State<Transaction> {
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      debugPrint('Signed transaction is: $signedTransaction', wrapWidth: 1000);
-      final result = await widget.wallet.postTransaction(
+
+      final result = (widget.transactionType == 'AR') ? await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content,
           tags: _tags,
           quantity: Ar.arToWinston(double.parse(_amount)),
-          targetAddress: _toAddress);
+          targetAddress: _toAddress) :
+          await widget.wallet.postTransaction(
+          signedTransaction, txAnchor, _transactionCost,
+          data: _content, tags: _tags);
 
       debugPrint('Transaction status: ${result[0].statusCode}');
       try {
