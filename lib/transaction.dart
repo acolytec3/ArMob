@@ -83,7 +83,7 @@ class TransactionState extends State<Transaction> {
         data: _content,
         tags: _tags,
         targetAddress: _toAddress,
-        quantity: _amount) :  widget.wallet.createTransaction(
+        quantity: Ar.arToWinston(double.parse(_amount))) :  widget.wallet.createTransaction(
         txAnchor, _transactionCost,
         data: _content, tags: _tags);
 
@@ -94,12 +94,12 @@ class TransactionState extends State<Transaction> {
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString()
       });
-      debugPrint('Signed transaction is: $signedTransaction', wrapWidth: 1000);
+
       final result = (widget.transactionType == 'AR') ? await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
           data: _content,
           tags: _tags,
-          quantity: _amount,
+          quantity: Ar.arToWinston(double.parse(_amount)),
           targetAddress: _toAddress) :
           await widget.wallet.postTransaction(
           signedTransaction, txAnchor, _transactionCost,
