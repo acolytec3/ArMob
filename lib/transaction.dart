@@ -89,11 +89,12 @@ class TransactionState extends State<Transaction> {
         tags: _tags);
 
     try {
-      List<int> signedTransaction =
-          await platform.invokeMethod('signTransaction', {
+      final signedTransaction= await platform.invokeMethod('sign', {
         'rawTransaction': Uint8List.fromList(rawTransaction),
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
-        'd': _base64ToInt(widget.wallet.jwk['d']).toString()
+        'd': _base64ToInt(widget.wallet.jwk['d']).toString(),
+        'dp': _base64ToInt(widget.wallet.jwk['dp']).toString(),
+        'dq': _base64ToInt(widget.wallet.jwk['dq']).toString()
       });
 
       final result = (widget.transactionType == 'AR') ? await widget.wallet.postTransaction(
@@ -106,7 +107,7 @@ class TransactionState extends State<Transaction> {
           signedTransaction, txAnchor, _transactionCost,
           data: _content, tags: _tags);
 
-      debugPrint('Transaction status: ${result[0].statusCode}');
+      debugPrint('Transaction status: ${result[0].statusCode}',wrapWidth:1000);
       try {
         _transactionStatus = result[0].statusCode.toString();
       } catch (__) {
@@ -123,6 +124,8 @@ class TransactionState extends State<Transaction> {
       setState(() {});
     } on PlatformException catch (e) {
       debugPrint('Platform error occurred: $e');
+    } catch (__) {
+      debugPrint('Other error occurred: $__');
     }
     await Future.delayed(const Duration(seconds: 3));
     Navigator.pop(context);
