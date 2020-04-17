@@ -14,20 +14,18 @@ import Signer
                                               binaryMessenger: controller.binaryMessenger)
     signerChannel.setMethodCallHandler({
       (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-       
         if (call.method == "sign") {
+            let args = call.arguments as? Dictionary<String, Any>
+            let rawTx = args?["rawTransaction"] as? FlutterStandardTypedData
+            let n = args?["n"] as? String
+            let d = args?["d"] as? String
+            let dp = args?["dp"] as? String
+            let dq = args?["dq"] as? String
             var error: NSErrorPointer = nil
-            if let args = call.arguments as? Dictionary<String, Any>,
-                let rawTx = args["rawTransaction"] as? Data,
-                let n = args["n"] as? String,
-                let d = args["d"] as? String,
-                let dp = args["dp"] as? String,
-                let dq = args["dq"] as? String
-                {
-                    result(SignerSign(rawTx, n, d, dp, dq, error))
-            }
-        }
+            var rawTxData = Data(rawTx!.data)
             
+            result(SignerSign(rawTxData, n, d, dp, dq, error))
+        }
         else {
            result(FlutterMethodNotImplemented)
            return
