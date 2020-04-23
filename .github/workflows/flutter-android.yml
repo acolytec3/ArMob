@@ -26,7 +26,6 @@ jobs:
         channel: 'stable' # or: 'dev' or 'beta'
 
     - run: git clone https://github.com/acolytec3/libarweave.git ../libarweave
-      
     - run: flutter pub get
     - run: flutter build apk
 
