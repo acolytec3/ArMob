@@ -30,4 +30,8 @@ jobs:
     - run: flutter build apk --release
     - run: flutter build ios --release --no-codesign
 
+    - uses: actions/upload-artifact@v1
+      with:
+        name: builds
+        path: .
 
