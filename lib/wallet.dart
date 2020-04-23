@@ -21,11 +21,12 @@ class WalletState extends State<Wallet> {
   //Wallet details
   Ar.Wallet _myWallet;
   var _balance;
-  List _dataTxHistory;
+  List<dynamic> _txList;
 
   //App components
   final storage = FlutterSecureStorage();
   var loading = true;
+  String dropdownValue = 'All Transactions';
 
   @override
   void initState() {
@@ -54,8 +55,8 @@ class WalletState extends State<Wallet> {
       if (txns != null) {
         debugPrint('Txns retrieved: $txns', wrapWidth: 1000);
         try {
-          final allTx = jsonDecode(txns);
-          Provider.of<WalletData>(context, listen: false).setTxs(allTx);
+          _txList = jsonDecode(txns);
+          Provider.of<WalletData>(context, listen: false).setTxs(_txList);
           setState(() {});
           _newTxns();
           _pendingTxns();
@@ -97,7 +98,6 @@ class WalletState extends State<Wallet> {
             .updateArweaveId(_arweaveId);
         await storage.write(key: 'arweaveId', value: _arweaveId);
       }
-      _loadDataTxs();
       _loadAllTxns();
       Provider.of<WalletData>(context, listen: false)
           .updateWallet(_walletString, _balance);
@@ -114,19 +114,8 @@ class WalletState extends State<Wallet> {
     Provider.of<WalletData>(context, listen: false).setTxs([]);
     Provider.of<WalletData>(context, listen: false).setTxIds([]);
     _balance = 0;
-    _dataTxHistory = null;
     _myWallet = null;
     setState(() {});
-  }
-
-  void _loadDataTxs() async {
-    try {
-      final dataTxHistory = await _myWallet.dataTransactionHistory();
-      _dataTxHistory = dataTxHistory;
-      setState(() {});
-    } catch (__) {
-      debugPrint('Error loading data tx history: $__');
-    }
   }
 
   void _loadAllTxns() async {
@@ -144,8 +133,8 @@ class WalletState extends State<Wallet> {
 
       Provider.of<WalletData>(context, listen: false).setTxIds(allTxIds);
 
-      final txns = Provider.of<WalletData>(context, listen: false).allTx;
-      storage.write(key: 'txHistory', value: jsonEncode(txns));
+      _txList = Provider.of<WalletData>(context, listen: false).allTx;
+      storage.write(key: 'txHistory', value: jsonEncode(_txList));
       storage.write(key: 'txIds', value: jsonEncode(allTxIds).toString());
       debugPrint('Wrote all txns to storage');
     } catch (__) {
@@ -165,6 +154,7 @@ class WalletState extends State<Wallet> {
         final txnDetail = await formTxn(txn);
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
       }
+      _txList = Provider.of<WalletData>(context, listen: false).allTx;
       setState(() {});
     }
   }
@@ -184,37 +174,8 @@ class WalletState extends State<Wallet> {
       }
     }
     Provider.of<WalletData>(context, listen: false).setTxs(finalTx);
+    _txList = Provider.of<WalletData>(context, listen: false).allTx;
     setState(() {});
-  }
-
-  Widget dataTransactionItem(transaction) {
-    var contentType = {};
-    try {
-      contentType = transaction['tags'].singleWhere(
-          (tag) => tag['name'] == 'Content-Type',
-          orElse: () => "No content-type specified");
-    } catch (__) {
-      contentType = {'value': "None"};
-    }
-    return ListTile(
-        title: Text(transaction['id']),
-        subtitle: Text("Content type: ${contentType['value']}"),
-        onTap: () {
-          widget.notifyParent(1, "https://arweave.net/${transaction['id']}");
-        });
-  }
-
-  List<Widget> buildDataTxHistory() {
-    var txnList = <Widget>[];
-    try {
-      for (var txn in _dataTxHistory) {
-        txnList.add(dataTransactionItem(txn));
-      }
-    } catch (__) {
-      debugPrint('Error retrieving transactions: $__');
-      txnList.add(Text('No transactions retrieved'));
-    }
-    return txnList;
   }
 
   dynamic formTxn(String txId) async {
@@ -247,9 +208,9 @@ class WalletState extends State<Wallet> {
     return txnDetail;
   }
 
-  Widget txnDetailWidget(BuildContext context, int index) {
+  Widget txnDetailWidget(BuildContext context, int index, String filter) {
     final txnDetail =
-        Provider.of<WalletData>(context, listen: false).allTx[index];
+        _txList[index];
     List<Widget> txn;
     if (txnDetail['status'] != 'pending') {
       if (txnDetail['tags'] != null) {
@@ -294,38 +255,55 @@ class WalletState extends State<Wallet> {
     }
   }
 
+  void updateTxList(String txType){
+    switch (txType) {
+      case "Data Transactions": _txList = Provider.of<WalletData>(context, listen:false).allTx.where((txn) => txn['data'] != "").toList();
+        break;
+      case "AR Transactions": _txList = Provider.of<WalletData>(context, listen:false).allTx.where((txn) => txn['data'] == "").toList();
+        break;
+      default:
+      _txList = Provider.of<WalletData>(context, listen:false).allTx;
+    }
+  }
   @override
   Widget build(context) {
     return DefaultTabController(
         length: 2,
         child: Scaffold(
             appBar: AppBar(
-                bottom: TabBar(tabs: [
-              Tab(text: 'All Transactions', icon: Icon(Icons.monetization_on)),
-              Tab(text: 'Data Transactions', icon: Icon(Icons.library_books)),
-            ])),
-            body: TabBarView(children: [
-              (Provider.of<WalletData>(context, listen: true).walletString ==
-                      null)
-                  ? (Center(child: Text('Open wallet to see transactions')))
-                  : RefreshIndicator(
-                      child: ListView.builder(
-                          itemBuilder: (BuildContext context, int index) =>
-                              txnDetailWidget(context, index),
-                          itemCount:
-                              Provider.of<WalletData>(context, listen: true)
-                                  .allTx
-                                  .length),
-                      onRefresh: () async {
-                        _newTxns();
-                        _pendingTxns();
-                        await Future.delayed(const Duration(seconds: 1));
-                      }),
-              (Provider.of<WalletData>(context, listen: true).walletString ==
-                      null)
-                  ? (Center(child: Text('Open wallet to see transactions')))
-                  : ListView(children: buildDataTxHistory())
-            ]),
+              title: Text('Transactions'),
+              actions: <Widget>[DropdownButton(style: TextStyle(color: Colors.white), dropdownColor: Colors.blue,
+                items: <String>['All Transactions', 'Data Transactions', 'AR Transactions']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String newValue) {
+                  setState(() {
+                    dropdownValue = newValue;
+                    updateTxList(newValue);
+                  });
+                },
+                value: dropdownValue,
+              ),]
+            ),
+            body:
+                (Provider.of<WalletData>(context, listen: true).walletString ==
+                        null)
+                    ? (Center(child: Text('Open wallet to see transactions')))
+                    : RefreshIndicator(
+                        child: ListView.builder(
+                            itemBuilder: (BuildContext context, int index) =>
+                                txnDetailWidget(context, index, dropdownValue),
+                            itemCount:
+                                _txList.length),
+                        onRefresh: () async {
+                          _newTxns();
+                          _pendingTxns();
+                          await Future.delayed(const Duration(seconds: 1));
+                        }),
             floatingActionButton: (_myWallet != null)
                 ? SpeedDial(animatedIcon: AnimatedIcons.view_list, children: [
                     (SpeedDialChild(
@@ -337,17 +315,17 @@ class WalletState extends State<Wallet> {
                         label: 'Archive File',
                         onTap: () {
                           Route route = MaterialPageRoute(
-                              builder: (context) =>
-                                  Transaction(wallet: _myWallet, transactionType: 'data'));
+                              builder: (context) => Transaction(
+                                  wallet: _myWallet, transactionType: 'data'));
                           Navigator.push(context, route);
                         }),
-                                            SpeedDialChild(
+                    SpeedDialChild(
                         child: Icon(Icons.attach_money),
                         label: 'Send AR',
                         onTap: () {
                           Route route = MaterialPageRoute(
-                              builder: (context) =>
-                                  Transaction(wallet: _myWallet, transactionType: 'AR'));
+                              builder: (context) => Transaction(
+                                  wallet: _myWallet, transactionType: 'AR'));
                           Navigator.push(context, route);
                         })
                   ])
