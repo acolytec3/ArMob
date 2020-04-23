@@ -32,6 +32,11 @@ jobs:
 
     - uses: actions/upload-artifact@v1
       with:
-        name: builds
-        path: .
+        name: ios-build
+        path: ./build/ios
+      
+    - uses: actions/upload-artifact@v1
+      with:
+        name: android-build
+        path: ./build/app/outputs/apk/release
 
