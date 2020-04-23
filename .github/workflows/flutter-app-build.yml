@@ -29,9 +29,7 @@ jobs:
     - run: flutter pub get
     - run: flutter build apk --release
     - run: flutter build ios --release --no-codesign
-    - run: mkdir -p build/ios/iphoneos/Payload
-    - run: mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload
-    - run: zip -r build/ios/iphoneos app.ipa build/ios/iphoneos/Payload
+    - run: xcodebuild -exportArchive -archivePath build/ios/iphoneos/Runner.app -exportPath build/ios/iphoneos/ -exportOptionsPlist ci/enterprise-options.plist
 
     - uses: actions/upload-artifact@v1
       with:
