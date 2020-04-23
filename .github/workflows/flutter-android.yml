@@ -19,7 +19,7 @@ jobs:
     - uses: actions/checkout@master
     - uses: actions/checkout@master
       with:
-        name: acolytec3/libarweave
+        repository: acolytec3/libarweave
     - uses: actions/setup-java@v1
       with:
         java-version: '12.x'
