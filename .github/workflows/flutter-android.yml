@@ -17,9 +17,7 @@ jobs:
     
     steps:
     - uses: actions/checkout@master
-    - uses: actions/checkout@master
-      with:
-        repository: acolytec3/libarweave
+
     - uses: actions/setup-java@v1
       with:
         java-version: '12.x'
@@ -27,6 +25,8 @@ jobs:
       with:
         channel: 'stable' # or: 'dev' or 'beta'
 
+    - run: git clone https://github.com/acolytec3/libarweave.git
+      
     - run: flutter pub get
     - run: flutter build apk
 
