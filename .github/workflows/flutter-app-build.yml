@@ -29,14 +29,17 @@ jobs:
     - run: flutter pub get
     - run: flutter build apk --release
     - run: flutter build ios --release --no-codesign
+    - run: mkdir -p build/ios/iphoneos/Payload
+    - run: mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload
+    - run: zip -r build/ios/iphoneos app.ipa build/ios/iphoneos/Payload
 
     - uses: actions/upload-artifact@v1
       with:
         name: ios-build
-        path: ./build/ios
+        path: ./build/ios/iphoneos/Payload
       
     - uses: actions/upload-artifact@v1
       with:
         name: android-build
-        path: ./build/app/outputs/apk/release
+        path: ./build/app/outputs/apk/release/app-release.apk
 
