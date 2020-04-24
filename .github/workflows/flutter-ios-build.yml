@@ -16,7 +16,7 @@ jobs:
     runs-on: macos-latest
     
     steps:
-    - uses: actions/checkout@ios-build-action
+    - uses: actions/checkout@master
 
     - uses: actions/setup-java@v1
       with:
