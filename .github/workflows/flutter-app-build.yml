@@ -29,12 +29,10 @@ jobs:
     - run: flutter pub get
 
     - run: flutter build ios --release --no-codesign
-    - run: mkdir -p build/ios/iphoneos/Payload && mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload
-    - run: cd build/ios/iphoneos && zip -r app.ipa Payload
       
     - uses: actions/upload-artifact@v1
       with:
         name: ios-build
-        path: ./build/ios/iphoneos/Payload
+        path: ./build/ios/iphoneos/
       
 
