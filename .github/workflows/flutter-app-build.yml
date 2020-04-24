@@ -27,12 +27,11 @@ jobs:
 
     - run: git clone https://github.com/acolytec3/libarweave.git ../libarweave
     - run: flutter pub get
-
+    - run: flutter build apk --release
     - run: flutter build ios --release --no-codesign
       
     - uses: actions/upload-artifact@v1
       with:
-        name: ios-build
-        path: ./build/ios/iphoneos/
-      
+        name: android-build
+        path: ./build/app/outputs/apk/release
 
