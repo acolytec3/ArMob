@@ -115,6 +115,7 @@ class WalletState extends State<Wallet> {
     Provider.of<WalletData>(context, listen: false).setTxIds([]);
     _balance = 0;
     _myWallet = null;
+    _txList = [];
     setState(() {});
   }
 
