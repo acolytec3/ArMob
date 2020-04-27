@@ -4,6 +4,7 @@ import 'package:arweave/wallet.dart';
 import 'package:arweave/appState.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
+import 'package:arweave/settings.dart';
 
 void main() {
   runApp(ChangeNotifierProvider(
@@ -50,7 +51,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     Offstage(
                       offstage: _currentIndex != 1,
                       child: Browser(),
-                    )
+                    ),
+                    Offstage(child: Settings(), offstage: _currentIndex != 2)
                   ],
                 )),
             bottomNavigationBar: BottomNavigationBar(
@@ -68,6 +70,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     icon: Icon(Icons.map),
                     title: Text("Browser"),
                   ),
+                  BottomNavigationBarItem(icon: Icon(Icons.settings),title: Text("Settings"))
                 ])));
   }
 }
