@@ -25,7 +25,6 @@ class WalletState extends State<Wallet> {
 
   //App components
   final storage = FlutterSecureStorage();
-  var loading = true;
   String dropdownValue = 'All Transactions';
 
   @override
@@ -80,7 +79,6 @@ class WalletState extends State<Wallet> {
       }
     }
 
-    loading = false;
   }
 
   void _openWallet(context) async {
@@ -295,11 +293,11 @@ class WalletState extends State<Wallet> {
                         null)
                     ? (Center(child: Text('Open wallet to see transactions')))
                     : RefreshIndicator(
-                        child: ListView.builder(
+                        child: ( _txList != null ? ListView.builder(
                             itemBuilder: (BuildContext context, int index) =>
                                 txnDetailWidget(context, index, dropdownValue),
                             itemCount:
-                                _txList.length),
+                                _txList.length) : Center(child: Text("No txns retrieved"),)),
                         onRefresh: () async {
                           _newTxns();
                           _pendingTxns();
