@@ -9,6 +9,7 @@ class Settings extends StatefulWidget {
 }
 
 class SettingsState extends State<Settings> {
+
   String _gateway = "https://arweave.net:443";
   String _customGateway = '';
 
@@ -19,6 +20,7 @@ class SettingsState extends State<Settings> {
         Text(
           "Gateway",
           style: TextStyle(fontWeight: FontWeight.bold),
+
           textAlign: TextAlign.left,
         ),
         RadioListTile(
