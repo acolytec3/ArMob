@@ -121,12 +121,30 @@ class WalletState extends State<Wallet> {
     try {
       List allToTxnIds = await _myWallet.allTransactionsToAddress();
       List allFromTxnIds = await _myWallet.allTransactionsFromAddress();
-      final allTxIds = allToTxnIds;
-      allTxIds.addAll(allFromTxnIds);
+      String errorMessage;
+      var allTxIds = [];
+      if (allToTxnIds[0] != 'Error'){
+        allTxIds = allToTxnIds;
+      }
+      else {
+        errorMessage = "Error retrieving transactions to your address - Status Code: ${allToTxnIds[0]} ${allToTxnIds[2]}";
+      }
+      if (allFromTxnIds[0] != 'Error'){
+        allTxIds == [] ? allTxIds= allFromTxnIds : allTxIds.addAll(allFromTxnIds);
+      }
+      else {
+        errorMessage == null ? errorMessage = "Error retrieving transactions from this address - Status Code: ${allFromTxnIds[0]} ${allFromTxnIds[2]}" : errorMessage = "Error retrieving transactions -  Status Code: ${allFromTxnIds[0]} ${allFromTxnIds[2]}";
+      }
 
+      if (errorMessage != null){
+        final snackBar = SnackBar(content: Text(errorMessage));
+        Scaffold.of(context).showSnackBar(snackBar);
+      }
+      
       for (var i = 0; i < allTxIds.length; i++) {
         final txnDetail = await formTxn(allTxIds[i]);
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+        _txList = Provider.of<WalletData>(context, listen: false).allTx;
         setState(() {});
       }
 
