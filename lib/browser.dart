@@ -8,15 +8,26 @@ import 'package:arweave/appState.dart';
 import 'package:libarweave/libarweave.dart' as Arweave;
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
-import 'package:pointycastle/export.dart';
 
 var loginFunction, signFunction;
 
 final webviewKey = GlobalKey<WebViewContainerState>();
-
+final walletAPI = '''
+const walletAPI = {
+    getPublicKey : async function () {
+        return window.flutter_inappwebview.callHandler('address').then(function (result) {
+            var walletString = JSON.stringify(result);
+            walletString.replace(/"/g,"\\\"")
+            return walletString;
+    })},
+    sign : async function (rawTransaction) {
+        console.log(rawTransaction);
+        return window.flutter_inappwebview.callHandler('sign',rawTransaction).then(transactionID => transactionID)
+    }
+}''';
 final oldSigningFunction =
     'oldSigningFunction = arweave.transactions.sign; alert("ArMob will manage message signing in this Dapp");';
-final signingFunction = '''arweave.transactions.sign = async function() {
+final oddsigningFunction = '''arweave.transactions.sign = async function() {
    window.flutter_inappwebview.callHandler('sign',arguments).then(function(result) {
      if (confirm(`Transaction Fee \${arweave.ar.winstonToAr(arguments[0].reward)} AR. Do you want to sign this transaction?`)) {
     arguments[0].signature = result[0];
@@ -25,6 +36,8 @@ final signingFunction = '''arweave.transactions.sign = async function() {
     return arguments[0];  }
 else { alert('Transaction canceled')}});
 }''';
+final signingFunction =
+    '''arweave.transactions.sign = function() { walletAPI.sign(arguments).then(function(result) { console.log(result)})}''';
 
 final unlockFunction =
     '''queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
@@ -70,13 +83,15 @@ class WebViewContainerState extends State<WebViewContainer> {
                 webViewController = controller;
 
                 controller.addJavaScriptHandler(
-                    handlerName: "ableToSign",
+                    handlerName: "address",
                     callback: (args) {
-                      loginFunction = args[0];
-                      signFunction = args[1];
-                      debugPrint('ArMob found a signing function!');
-                      debugPrint("Arguments are ${args.toString()}");
-                      return "Still seeing you";
+                      final _walletString =
+                          Provider.of<WalletData>(context, listen: false)
+                              .walletString;
+                      var key = JsonWebKey.fromJson(jsonDecode(_walletString));
+                      final publicKey = Map.from(
+                          {'kty': key['kty'], 'e': key['e'], 'n': key['n']});
+                      return jsonEncode(publicKey);
                     });
                 controller.addJavaScriptHandler(
                     handlerName: "sign",
@@ -114,8 +129,8 @@ class WebViewContainerState extends State<WebViewContainer> {
                           tags: Arweave.decodeTags(args[0]['0']['tags']),
                           targetAddress: args[0]['0']['target'],
                           quantity: args[0]['0']['quantity']);
-                      debugPrint('Tx status - ${result[0].statusCode.toString()}');
-
+                      debugPrint(
+                          'Tx status - ${result[0].statusCode.toString()}');
                       return result[1];
                     });
               },
@@ -131,23 +146,8 @@ class WebViewContainerState extends State<WebViewContainer> {
               onLoadStop: (InAppWebViewController controller, String status) {
                 webViewController.evaluateJavascript(
                     source: oldSigningFunction);
+                webViewController.evaluateJavascript(source: walletAPI);
                 webViewController.evaluateJavascript(source: signingFunction);
-                webViewController.evaluateJavascript(source: '''
-                window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
-                  queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
-          re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
-          loginFunctionName = (queries[0].text.match(re))[0];
-          console.log("hello");
-             window.flutter_inappwebview.callHandler('ableToSign', loginFunctionName, oldSigningFunction).then(function(result) {
-               console.log("Hello " + result);
-             });
-           });
-                ''');
-                webViewController.evaluateJavascript(source: '''
-             window.flutter_inappwebview.callHandler('sign').then(function(result) {
-               console.log("Hello " + result);
-             });
-                ''');
               }))
     ]);
   }
@@ -234,13 +234,13 @@ class BrowserState extends State<Browser> {
                 onPressed: (_walletString != null)
                     ? () => webviewKey.currentState.webViewController
                         .evaluateJavascript(source: '''
-          var wallet = $mes;
-          var walletString = JSON.stringify(wallet);
-          walletString.replace(/"/g,"\\\"")
-          queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
-          re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
-          loginFunctionName = (queries[0].text.match(re))[0];
-          window[loginFunctionName]([new File([walletString.toString()],"wallet.json")])''')
+                        var wallet = $mes;
+                        var walletString = JSON.stringify(wallet);
+                        walletString.replace(/"/g,"\\\"")
+                        queries = (Array.from(document.getElementsByTagName('script'))).filter(script => script.text.includes("new FileReader"));
+                        re = /(?<=function\\s+)(\\w+)(?=\\s*\\(\\w*\\)\\s*\\{[\\s\\S]+new FileReader[\\s\\S]*})/;
+                        loginFunctionName = (queries[0].text.match(re))[0];
+                        window[loginFunctionName]([new File([walletString],"wallet.json")]);''')
                     : null)
           ],
         ),
