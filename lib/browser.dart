@@ -17,7 +17,6 @@ const walletAPI = {
     getPublicKey : async function () {
         return window.flutter_inappwebview.callHandler('address').then(function (result) {
             var walletString = JSON.stringify(result);
-            walletString.replace(/"/g,"\\\"")
             return walletString;
     })},
     sign : async function (rawTransaction) {
