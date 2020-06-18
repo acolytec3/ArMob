@@ -78,7 +78,6 @@ class WalletState extends State<Wallet> {
         }
       }
     }
-
   }
 
   void _openWallet(context) async {
@@ -121,12 +120,35 @@ class WalletState extends State<Wallet> {
     try {
       List allToTxnIds = await _myWallet.allTransactionsToAddress();
       List allFromTxnIds = await _myWallet.allTransactionsFromAddress();
-      final allTxIds = allToTxnIds;
-      allTxIds.addAll(allFromTxnIds);
+      String errorMessage;
+      var allTxIds = [];
+      if (allToTxnIds[0] != 'Error') {
+        allTxIds = allToTxnIds;
+      } else {
+        errorMessage =
+            "Error retrieving transactions to your address - Status Code: ${allToTxnIds[0]} ${allToTxnIds[2]}";
+      }
+      if (allFromTxnIds[0] != 'Error') {
+        allTxIds == []
+            ? allTxIds = allFromTxnIds
+            : allTxIds.addAll(allFromTxnIds);
+      } else {
+        errorMessage == null
+            ? errorMessage =
+                "Error retrieving transactions from this address - Status Code: ${allFromTxnIds[0]} ${allFromTxnIds[2]}"
+            : errorMessage =
+                "Error retrieving transactions -  Status Code: ${allFromTxnIds[0]} ${allFromTxnIds[2]}";
+      }
+
+      if (errorMessage != null) {
+        final snackBar = SnackBar(content: Text(errorMessage));
+        Scaffold.of(context).showSnackBar(snackBar);
+      }
 
       for (var i = 0; i < allTxIds.length; i++) {
         final txnDetail = await formTxn(allTxIds[i]);
         Provider.of<WalletData>(context, listen: false).addTx(txnDetail);
+        _txList = Provider.of<WalletData>(context, listen: false).allTx;
         setState(() {});
       }
 
@@ -142,11 +164,35 @@ class WalletState extends State<Wallet> {
   }
 
   _newTxns() async {
-    List allTxnIds = await _myWallet.allTransactionsToAddress();
-    List allFromTxns = await _myWallet.allTransactionsFromAddress();
+    List allToTxnIds = await _myWallet.allTransactionsToAddress();
+    List allFromTxnIds = await _myWallet.allTransactionsFromAddress();
     final histTxIds = Provider.of<WalletData>(context, listen: false).allTxIds;
-    allTxnIds.addAll(allFromTxns);
-    final newTxnIds = allTxnIds.where((txId) => !(histTxIds.contains(txId)));
+    String errorMessage;
+    var allTxIds = [];
+    if (allToTxnIds[0] != 'Error') {
+      allTxIds = allToTxnIds;
+    } else {
+      errorMessage =
+          "Error retrieving transactions to your address - Status Code: ${allToTxnIds[0]} ${allToTxnIds[2]}";
+    }
+    if (allFromTxnIds[0] != 'Error') {
+      allTxIds == []
+          ? allTxIds = allFromTxnIds
+          : allTxIds.addAll(allFromTxnIds);
+    } else {
+      errorMessage == null
+          ? errorMessage =
+              "Error retrieving transactions from this address - Status Code: ${allFromTxnIds[0]} ${allFromTxnIds[2]}"
+          : errorMessage =
+              "Error retrieving transactions -  Status Code: ${allFromTxnIds[0]} ${allFromTxnIds[2]}";
+    }
+
+    if (errorMessage != null) {
+      final snackBar = SnackBar(content: Text(errorMessage));
+      Scaffold.of(context).showSnackBar(snackBar);
+    }
+
+    final newTxnIds = allTxIds.where((txId) => !(histTxIds.contains(txId)));
     if (newTxnIds.length > 0) {
       debugPrint(newTxnIds.toString());
       for (var txn in newTxnIds) {
@@ -208,8 +254,7 @@ class WalletState extends State<Wallet> {
   }
 
   Widget txnDetailWidget(BuildContext context, int index, String filter) {
-    final txnDetail =
-        _txList[index];
+    final txnDetail = _txList[index];
     List<Widget> txn;
     if (txnDetail['status'] != 'pending') {
       if (txnDetail['tags'] != null) {
@@ -254,26 +299,39 @@ class WalletState extends State<Wallet> {
     }
   }
 
-  void updateTxList(String txType){
+  void updateTxList(String txType) {
     switch (txType) {
-      case "Data Transactions": _txList = Provider.of<WalletData>(context, listen:false).allTx.where((txn) => txn['data'] != "").toList();
+      case "Data Transactions":
+        _txList = Provider.of<WalletData>(context, listen: false)
+            .allTx
+            .where((txn) => txn['data'] != "")
+            .toList();
         break;
-      case "AR Transactions": _txList = Provider.of<WalletData>(context, listen:false).allTx.where((txn) => txn['data'] == "").toList();
+      case "AR Transactions":
+        _txList = Provider.of<WalletData>(context, listen: false)
+            .allTx
+            .where((txn) => txn['data'] == "")
+            .toList();
         break;
       default:
-      _txList = Provider.of<WalletData>(context, listen:false).allTx;
+        _txList = Provider.of<WalletData>(context, listen: false).allTx;
     }
   }
+
   @override
   Widget build(context) {
     return DefaultTabController(
         length: 2,
         child: Scaffold(
-            appBar: AppBar(
-              title: Text('Transactions'),
-              actions: <Widget>[DropdownButton(style: TextStyle(color: Colors.white), dropdownColor: Colors.blue,
-                items: <String>['All Transactions', 'Data Transactions', 'AR Transactions']
-                    .map<DropdownMenuItem<String>>((String value) {
+            appBar: AppBar(title: Text('Transactions'), actions: <Widget>[
+              DropdownButton(
+                style: TextStyle(color: Colors.white),
+                dropdownColor: Colors.blue,
+                items: <String>[
+                  'All Transactions',
+                  'Data Transactions',
+                  'AR Transactions'
+                ].map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -286,23 +344,26 @@ class WalletState extends State<Wallet> {
                   });
                 },
                 value: dropdownValue,
-              ),]
-            ),
-            body:
-                (Provider.of<WalletData>(context, listen: true).walletString ==
-                        null)
-                    ? (Center(child: Text('Open wallet to see transactions')))
-                    : RefreshIndicator(
-                        child: ( _txList != null ? ListView.builder(
+              ),
+            ]),
+            body: (Provider.of<WalletData>(context, listen: true)
+                        .walletString ==
+                    null)
+                ? (Center(child: Text('Open wallet to see transactions')))
+                : RefreshIndicator(
+                    child: (_txList != null
+                        ? ListView.builder(
                             itemBuilder: (BuildContext context, int index) =>
                                 txnDetailWidget(context, index, dropdownValue),
-                            itemCount:
-                                _txList.length) : Center(child: Text("No txns retrieved"),)),
-                        onRefresh: () async {
-                          _newTxns();
-                          _pendingTxns();
-                          await Future.delayed(const Duration(seconds: 1));
-                        }),
+                            itemCount: _txList.length)
+                        : Center(
+                            child: Text("No txns retrieved"),
+                          )),
+                    onRefresh: () async {
+                      _newTxns();
+                      _pendingTxns();
+                      await Future.delayed(const Duration(seconds: 1));
+                    }),
             floatingActionButton: (_myWallet != null)
                 ? SpeedDial(animatedIcon: AnimatedIcons.view_list, children: [
                     (SpeedDialChild(
