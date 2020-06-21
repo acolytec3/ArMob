@@ -29,8 +29,9 @@ class TransactionState extends State<Transaction> {
   String _transactionResult;
   String _amount;
   String _displayTxCost = '0';
-  final _formKey = GlobalKey<FormState>();
 
+  final _formKey = GlobalKey<FormState>();
+  final _tagFormKey = GlobalKey<FormState>();
   static const platform = const MethodChannel('armob.dev/signer');
 
   void _getContent() async {
@@ -44,13 +45,11 @@ class TransactionState extends State<Transaction> {
 
     final contentType = mime(_fileName);
     _calculateTxCost(numBytes: _content.length, targetAddress: _toAddress);
-    _tags = [
-      {
-        'name': 'Content-Type',
-        'value': (contentType == null ? "None" : contentType)
-      },
-      {'name': 'User-Agent', 'value': 'Armob 0.1'}
-    ];
+    _tags.add({
+      'name': 'Content-Type',
+      'value': (contentType == null ? "None" : contentType)
+    });
+    _tags.add({'name': 'User-Agent', 'value': 'Armob 0.1'});
     setState(() {});
   }
 
@@ -78,18 +77,17 @@ class TransactionState extends State<Transaction> {
   void _submitTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
 
-    List<int> rawTransaction = (widget.transactionType == 'AR') ? widget.wallet.createTransaction(
-        txAnchor, _transactionCost,
-        data: _content,
-        tags: _tags,
-        targetAddress: _toAddress,
-        quantity: Ar.arToWinston(double.parse(_amount))) :  widget.wallet.createTransaction(
-        txAnchor, _transactionCost,
-        data: _content,
-        tags: _tags);
+    List<int> rawTransaction = (widget.transactionType == 'AR')
+        ? widget.wallet.createTransaction(txAnchor, _transactionCost,
+            data: _content,
+            tags: _tags,
+            targetAddress: _toAddress,
+            quantity: Ar.arToWinston(double.parse(_amount)))
+        : widget.wallet.createTransaction(txAnchor, _transactionCost,
+            data: _content, tags: _tags);
 
     try {
-      final signedTransaction= await platform.invokeMethod('sign', {
+      final signedTransaction = await platform.invokeMethod('sign', {
         'rawTransaction': Uint8List.fromList(rawTransaction),
         'n': _base64ToInt(widget.wallet.jwk['n']).toString(),
         'd': _base64ToInt(widget.wallet.jwk['d']).toString(),
@@ -97,17 +95,19 @@ class TransactionState extends State<Transaction> {
         'dq': _base64ToInt(widget.wallet.jwk['dq']).toString()
       });
 
-      final result = (widget.transactionType == 'AR') ? await widget.wallet.postTransaction(
-          signedTransaction, txAnchor, _transactionCost,
-          data: _content,
-          tags: _tags,
-          quantity: Ar.arToWinston(double.parse(_amount)),
-          targetAddress: _toAddress) :
-          await widget.wallet.postTransaction(
-          signedTransaction, txAnchor, _transactionCost,
-          data: _content, tags: _tags);
+      final result = (widget.transactionType == 'AR')
+          ? await widget.wallet.postTransaction(
+              signedTransaction, txAnchor, _transactionCost,
+              data: _content,
+              tags: _tags,
+              quantity: Ar.arToWinston(double.parse(_amount)),
+              targetAddress: _toAddress)
+          : await widget.wallet.postTransaction(
+              signedTransaction, txAnchor, _transactionCost,
+              data: _content, tags: _tags);
 
-      debugPrint('Transaction status: ${result[0].statusCode}',wrapWidth:1000);
+      debugPrint('Transaction status: ${result[0].statusCode}',
+          wrapWidth: 1000);
       try {
         _transactionStatus = result[0].statusCode.toString();
       } catch (__) {
@@ -145,59 +145,139 @@ class TransactionState extends State<Transaction> {
     return tagList;
   }
 
+  dynamicTags() {
+    var _name, _value;
+    return Form(
+        key: _tagFormKey,
+        child: Column(children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: Padding(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Name',
+                      ),
+                      validator: (value) {
+                        if (value.isEmpty) {
+                          return 'Tag name cannot be blank';
+                        }
+                        return null;
+                      },
+                      onSaved: (String value) {
+                        print(value);
+                        _name = value;
+                        print(_name);
+                        setState(() {});
+                      },
+                    ),
+                    padding: const EdgeInsets.all(5.0)),
+              ),
+              Expanded(
+                flex: 5,
+                child: Padding(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Value',
+                      ),
+                      validator: (value) {
+                        if (value.isEmpty) {
+                          return 'Tag value cannot be blank';
+                        }
+                        return null;
+                      },
+                      onSaved: (String value) {
+                        _value = value;
+                        setState(() {});
+                      },
+                    ),
+                    padding: const EdgeInsets.all(5.0)),
+              ),
+            ],
+          ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            IconButton(
+                icon: Icon(Icons.playlist_add),
+                onPressed: () {
+                  if (_tagFormKey.currentState.validate()) {
+                    _tagFormKey.currentState.save();
+                    _tagFormKey.currentState.reset();
+                  }
+                  print('Name is $_name and value is $_value');
+                  _tags.add({'name': _name, 'value': _value});
+                  setState(() {});
+                }),
+            Text('Add Tag')
+          ])
+        ]));
+  }
+
   Widget showARForm() {
     if (widget.transactionType == 'AR') {
       return (_toAddress == '')
           ? Form(
               key: _formKey,
-              child: Column(children: [
-                Padding(
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'To',
-                      ),
-                      validator: (value) {
-                        if (value.isEmpty) {
-                          return 'Address cannot be blank';
-                        }
-                        return null;
-                      },
-                      onSaved: (String value) {
-                        _toAddress = value;
-                        _calculateTxCost(targetAddress: _toAddress);
-                      },
+              child: Column(
+                children: [
+                  Row(children: [
+                    Expanded(
+                      flex: 5,
+                      child: Padding(
+                          child: TextFormField(
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'To',
+                            ),
+                            validator: (value) {
+                              if (value.isEmpty) {
+                                return 'Address cannot be blank';
+                              }
+                              return null;
+                            },
+                            onSaved: (String value) {
+                              _toAddress = value;
+                              _calculateTxCost(targetAddress: _toAddress);
+                            },
+                          ),
+                          padding: const EdgeInsets.all(5.0)),
                     ),
-                    padding: const EdgeInsets.all(20.0)),
-                Padding(
-                    child: TextFormField(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Amount',
-                        ),
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Amount cannot be 0';
+                    Expanded(
+                      flex: 5,
+                      child: Padding(
+                          child: TextFormField(
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Amount',
+                              ),
+                              validator: (value) {
+                                if (value.isEmpty) {
+                                  return 'Amount cannot be 0';
+                                }
+                                return null;
+                              },
+                              onSaved: (String value) {
+                                _amount = value;
+                                _calculateTxCost();
+                                setState(() {});
+                              }),
+                          padding: const EdgeInsets.all(5.0)),
+                    ),
+                  ]),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    IconButton(
+                        icon: Icon(Icons.check),
+                        onPressed: () {
+                          if (_formKey.currentState.validate()) {
+                            _formKey.currentState.save();
                           }
-                          return null;
-                        },
-                        onSaved: (String value) {
-                          _amount = value;
-                          _calculateTxCost();
-                          setState(() {});
                         }),
-                    padding: const EdgeInsets.all(20.0)),
-                Column(children: [
-                  IconButton(
-                      icon: Icon(Icons.check),
-                      onPressed: () {
-                        if (_formKey.currentState.validate()) {
-                          _formKey.currentState.save();
-                        }
-                      }),
-                  Text('Add Sendee/Amount')
-                ])
-              ]))
+                    Text('Add Sendee/Amount')
+                  ])
+                ],
+              ))
           : Column(children: [
               Row(children: <Widget>[
                 Text('To: '),
@@ -229,10 +309,8 @@ class TransactionState extends State<Transaction> {
               ]),
               Text('Transaction Tags',
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              Expanded(
-                  child: (_content != null)
-                      ? ListView(children: tagList())
-                      : Text('No content yet')),
+              Expanded(child:ListView(children: tagList())),
+              dynamicTags(),
               showARForm(),
               ButtonBar(
                   alignment: MainAxisAlignment.spaceAround,
