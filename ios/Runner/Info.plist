@@ -43,5 +43,9 @@
 	<false/>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera is used to take photos to be posted to permaweb.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone is used when recording video to be posted to permaweb</string>
 </dict>
 </plist>
