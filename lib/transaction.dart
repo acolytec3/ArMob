@@ -59,7 +59,7 @@ class TransactionState extends State<Transaction> {
       'name': 'Content-Type',
       'value': (contentType == null ? "None" : contentType)
     });
-    _tags.add({'name': 'User-Agent', 'value': 'Armob 0.1'});
+    _tags.add({'name': 'User-Agent', 'value': 'Armob 0.2'});
     setState(() {});
   }
 
