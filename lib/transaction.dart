@@ -86,7 +86,9 @@ class TransactionState extends State<Transaction> {
 
   void _submitTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
+
     debugPrint('The transaction type is ${widget.transactionType == 'AR'}');
+
     List<int> rawTransaction = (widget.transactionType == 'AR')
         ? widget.wallet.createTransaction(txAnchor, _transactionCost,
             data: _content,
@@ -178,6 +180,7 @@ class TransactionState extends State<Transaction> {
                       },
                       onSaved: (String value) {
                         _name = value;
+
                         setState(() {});
                       },
                     ),
