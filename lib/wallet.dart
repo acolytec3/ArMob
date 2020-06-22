@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:arweave/transaction.dart';
+import 'package:arweave/camera.dart';
 import 'dart:convert';
 
 class Wallet extends StatefulWidget {
@@ -386,6 +387,14 @@ class WalletState extends State<Wallet> {
                           Route route = MaterialPageRoute(
                               builder: (context) => Transaction(
                                   wallet: _myWallet, transactionType: 'AR'));
+                          Navigator.push(context, route);
+                        }),
+                    SpeedDialChild(
+                        child: Icon(Icons.linked_camera),
+                        label: 'Upload Picture',
+                        onTap: () {
+                          Route route = MaterialPageRoute(
+                              builder: (context) => CameraApp(wallet:_myWallet));
                           Navigator.push(context, route);
                         })
                   ])
