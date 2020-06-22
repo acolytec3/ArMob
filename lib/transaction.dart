@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:mime_type/mime_type.dart';
 import 'package:provider/provider.dart';
 import 'package:arweave/appState.dart';
+import 'dart:io';
 
 class Transaction extends StatefulWidget {
   final Ar.Wallet wallet;
@@ -34,8 +35,17 @@ class TransactionState extends State<Transaction> {
   final _tagFormKey = GlobalKey<FormState>();
   static const platform = const MethodChannel('armob.dev/signer');
 
-  void _getContent() async {
-    final file = await FilePicker.getFile();
+  @override
+  void initState() { 
+    super.initState();
+    if (widget.transactionType.length > 0 && widget.transactionType != 'AR') {
+      _getContent(path: widget.transactionType);
+    } 
+  }
+
+  void _getContent({String path}) async {
+
+    final file = path == null ? await FilePicker.getFile() : new File(path);
     _fileName = (file.path).split('/').last;
     try {
       _content = utf8.encode(file.readAsStringSync());
@@ -76,7 +86,7 @@ class TransactionState extends State<Transaction> {
 
   void _submitTransaction() async {
     final txAnchor = await Ar.Transaction.transactionAnchor();
-
+    debugPrint('The transaction type is ${widget.transactionType == 'AR'}');
     List<int> rawTransaction = (widget.transactionType == 'AR')
         ? widget.wallet.createTransaction(txAnchor, _transactionCost,
             data: _content,
@@ -167,9 +177,7 @@ class TransactionState extends State<Transaction> {
                         return null;
                       },
                       onSaved: (String value) {
-                        print(value);
                         _name = value;
-                        print(_name);
                         setState(() {});
                       },
                     ),
@@ -206,7 +214,6 @@ class TransactionState extends State<Transaction> {
                     _tagFormKey.currentState.save();
                     _tagFormKey.currentState.reset();
                   }
-                  print('Name is $_name and value is $_value');
                   _tags.add({'name': _name, 'value': _value});
                   setState(() {});
                 }),
